@@ -1,0 +1,19 @@
+# SPDX-License-Identifier: MIT
+# MatrixLib Test Suite Configuration
+
+tests:
+  libraries.matrixlib:
+    tags:
+      - matrixlib
+      - math
+      - linear_algebra
+    platform_allow:
+      - qemu_cortex_m3
+      - qemu_cortex_m0
+      - native_posix
+      - native_sim
+    integration_platforms:
+      - qemu_cortex_m3
+      - native_posix
+    harness: ztest
+    min_ram: 32

@@ -1,0 +1,148 @@
+@startuml MatrixLib Module Structure
+
+' MatrixLib Component/Module Architecture
+' Shows the modular header structure and dependencies
+
+title MatrixLib Module Structure
+
+skinparam componentStyle rectangle
+skinparam backgroundColor #FEFEFE
+
+package "matrixlib" {
+
+    [matrixlib.hpp] as main
+    note right of main
+        **Main Header**
+        Convenience include
+        for all components
+    end note
+
+    package "Core Components" {
+        [constants.hpp] as constants
+        [vector.hpp] as vector
+        [matrix.hpp] as matrix
+        [quaternion.hpp] as quaternion
+        [version.hpp] as version
+
+        note right of constants
+            **Standalone**
+            No dependencies
+
+            Mathematical constants:
+            - pi, e, sqrt2, etc.
+            - deg_to_rad, rad_to_deg
+            - Physical constants
+        end note
+    }
+
+    package "Type Aliases" {
+        [vec2D.hpp] as vec2d
+        [vec3D.hpp] as vec3d
+        [matrix2D.hpp] as mat2d
+        [matrix3D.hpp] as mat3d
+
+        note right of vec2d
+            Vec2<T>, Vec2f/d/i/u
+            POD verification
+        end note
+
+        note right of mat3d
+            Mat3<T>, Mat4<T>
+            3D transformations
+            4×4 homogeneous
+            transform_vector()
+        end note
+    }
+
+    package "Build System" {
+        [CMakeLists.txt] as cmake_root
+        [cmake/matrixlib-config.cmake.in] as cmake_config
+
+        package "Zephyr RTOS" {
+            [zephyr/module.yml] as zephyr_mod
+            [zephyr/Kconfig] as kconfig
+            [zephyr/CMakeLists.txt] as zephyr_cmake
+        }
+    }
+
+    package "SIMD Backends" <<optional>> {
+        interface "NEON\n(Cortex-A/ARM64)" as neon
+        interface "CMSIS-DSP\n(Cortex-M)" as cmsis
+
+        note right of neon
+            CONFIG_MATRIXLIB_NEON
+
+            Optimizes:
+            - Vec<float, 2/3/4>
+            - Quaternion<float>
+        end note
+
+        note right of cmsis
+            CONFIG_MATRIXLIB_CMSIS
+
+            Optimizes:
+            - All float operations
+            - Matrix multiplication
+            - Quaternion product
+        end note
+    }
+
+    package "Testing" {
+        [tests/google/] as gtest
+        [tests/zephyr/] as ztest
+
+        note right of gtest
+            test_vec.cpp
+            test_mat.cpp
+            test_quat.cpp
+            test_constants.cpp
+            test_edge_cases.cpp
+        end note
+    }
+
+    package "Documentation" {
+        [README.md] as readme
+        [QUICKSTART.md] as quickstart
+        [docs/API_Documentation.md] as api_doc
+        [docs/Cpp_Standard_Optimizations.md] as cpp_doc
+        [docs/IAR_Integration.md] as iar_doc
+        [docs/Sanitizer_Safety.md] as sanitizer_doc
+    }
+}
+
+' Dependencies
+main --> constants
+main --> vector
+main --> vec2d
+main --> vec3d
+main --> matrix
+main --> mat2d
+main --> mat3d
+main --> quaternion
+main --> version
+
+vector --> constants
+matrix --> vector
+mat2d --> matrix
+mat3d --> matrix
+mat3d --> vec3d
+quaternion --> vector
+quaternion --> mat3d
+
+vec2d --> vector
+vec3d --> vector
+
+vector ..> neon : optional
+vector ..> cmsis : optional
+matrix ..> cmsis : optional
+quaternion ..> neon : optional
+quaternion ..> cmsis : optional
+
+cmake_root --> cmake_config
+zephyr_mod --> kconfig
+zephyr_mod --> zephyr_cmake
+
+gtest --> main
+ztest --> main
+
+@enduml

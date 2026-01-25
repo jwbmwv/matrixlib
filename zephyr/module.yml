@@ -1,0 +1,4 @@
+name: matrixlib
+build:
+  cmake: .
+  kconfig: Kconfig

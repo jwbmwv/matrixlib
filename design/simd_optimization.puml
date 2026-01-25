@@ -1,0 +1,227 @@
+@startuml
+
+title SIMD Optimization Strategy
+
+skinparam backgroundColor #FEFEFE
+
+
+' ---------------------------------------------------------
+' Three Tier Overview
+' ---------------------------------------------------------
+class ThreeTierOptimization {
+    + tier1 : ARM NEON
+    + tier2 : CMSIS DSP
+    + tier3 : Generic C++
+    --
+    strategy :
+    prefer NEON when available
+    else CMSIS DSP
+    else generic C++
+}
+
+note right of ThreeTierOptimization
+    Three tier optimization strategy:
+    Tier 1: ARM NEON
+    Tier 2: CMSIS DSP
+    Tier 3: Generic C++ templates
+end note
+
+
+' ---------------------------------------------------------
+' Tier 1: ARM NEON
+' ---------------------------------------------------------
+class NeonTier {
+    + target_hardware :
+    ARM Cortex A
+    ARM64 AArch64
+    Apple Silicon
+    --
+    optimized_operations :
+    Vec2f Vec3f Vec4f operators
+    dot product
+    magnitude
+    Quaternion operators
+    --
+    intrinsics :
+    vld1q_f32
+    vst1q_f32
+    vaddq_f32
+    vsubq_f32
+    vmulq_f32
+    vpadd_f32
+    vnegq_f32
+}
+
+note right of NeonTier
+    Enable with:
+    CONFIG_MATRIXLIB_NEON
+
+    Detection:
+    ifdef __ARM_NEON
+    include arm_neon.h
+end note
+
+
+' ---------------------------------------------------------
+' Tier 2: CMSIS DSP
+' ---------------------------------------------------------
+class CmsisTier {
+    + target_hardware :
+    ARM Cortex M
+    Cortex M4 M7 M33 FPU
+    Cortex M55 Helium
+    --
+    optimized_operations :
+    VecN add sub dot
+    MatRC multiply inverse transpose
+    Quaternion product
+    --
+    functions :
+    arm_add_f32
+    arm_sub_f32
+    arm_dot_prod_f32
+    arm_mat_mult_f32
+    arm_mat_inverse_f32
+    arm_mat_trans_f32
+    arm_quaternion_product_f32
+    arm_negate_f32
+    arm_scale_f32
+}
+
+note right of CmsisTier
+    Enable with:
+    CONFIG_MATRIXLIB_CMSIS
+
+    Detection:
+    ifdef ARM_MATRIX_CM4
+    include arm_math.h
+end note
+
+
+' ---------------------------------------------------------
+' Tier 3: Generic C++
+' ---------------------------------------------------------
+class GenericTier {
+    + target_hardware :
+    all platforms
+    x86 x64
+    RISC V
+    other architectures
+    --
+    implementation :
+    pure C++ templates
+    --
+    compiler_optimizations :
+    auto vectorization
+    loop unrolling
+    constant folding
+    dead code elimination
+}
+
+note right of GenericTier
+    Always available.
+    No configuration needed.
+
+    Typical flags:
+    GCC O2 O3
+    Clang O2 O3
+    MSVC O2
+end note
+
+
+' ---------------------------------------------------------
+' Performance Characteristics
+' ---------------------------------------------------------
+class Vec3fAdditionPerf {
+    + neon :
+    four floats in parallel
+    about 1 to 2 cycles
+    --
+    cmsis :
+    software loop
+    about 3 to 6 cycles
+    --
+    generic :
+    three additions
+    about 3 to 9 cycles
+}
+
+class Mat4fMultiplyPerf {
+    + neon :
+    SIMD dot products
+    about 40 to 60 cycles
+    --
+    cmsis :
+    optimized loop
+    about 80 to 120 cycles
+    --
+    generic :
+    nested loops
+    about 150 to 250 cycles
+}
+
+class QuaternionProductPerf {
+    + neon :
+    parallel multiply add
+    about 8 to 12 cycles
+    --
+    cmsis :
+    specialized function
+    about 15 to 25 cycles
+    --
+    generic :
+    sixteen operations
+    about 30 to 50 cycles
+}
+
+
+' ---------------------------------------------------------
+' Selection Logic
+' ---------------------------------------------------------
+class SelectionLogic {
+    + prefers_neon : when CONFIG_MATRIXLIB_NEON
+    + else_cmsis : when CONFIG_MATRIXLIB_CMSIS
+    + else_generic : fallback
+    --
+    runtime_checks :
+    type is float
+    NEON only for float
+    CMSIS supports float
+    generic supports all types
+}
+
+note right of SelectionLogic
+    Pseudocode:
+    if NEON available
+        use NEON
+    else if CMSIS available
+        use CMSIS
+    else
+        use generic C++
+end note
+
+
+' ---------------------------------------------------------
+' Relationships
+' ---------------------------------------------------------
+ThreeTierOptimization --> NeonTier : tier 1
+ThreeTierOptimization --> CmsisTier : tier 2
+ThreeTierOptimization --> GenericTier : tier 3
+
+NeonTier --> Vec3fAdditionPerf
+CmsisTier --> Vec3fAdditionPerf
+GenericTier --> Vec3fAdditionPerf
+
+NeonTier --> Mat4fMultiplyPerf
+CmsisTier --> Mat4fMultiplyPerf
+GenericTier --> Mat4fMultiplyPerf
+
+NeonTier --> QuaternionProductPerf
+CmsisTier --> QuaternionProductPerf
+GenericTier --> QuaternionProductPerf
+
+SelectionLogic --> NeonTier
+SelectionLogic --> CmsisTier
+SelectionLogic --> GenericTier
+
+@enduml

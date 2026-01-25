@@ -1,0 +1,199 @@
+name: CI
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build-test:
+    name: ${{ matrix.os }} - ${{ matrix.compiler }} - C++${{ matrix.std }}
+    runs-on: ${{ matrix.os }}
+
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        compiler: [gcc, clang, msvc]
+        std: [11, 14, 17, 20]
+        exclude:
+          # MSVC only on Windows
+          - os: ubuntu-latest
+            compiler: msvc
+          - os: macos-latest
+            compiler: msvc
+          # GCC not available on macOS runner
+          - os: macos-latest
+            compiler: gcc
+          # Limit Windows to MSVC to reduce matrix size
+          - os: windows-latest
+            compiler: gcc
+          - os: windows-latest
+            compiler: clang
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Install Dependencies (Ubuntu)
+      if: matrix.os == 'ubuntu-latest'
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y cmake ninja-build
+        if [ "${{ matrix.compiler }}" = "clang" ]; then
+          sudo apt-get install -y clang
+        fi
+
+    - name: Install Dependencies (macOS)
+      if: matrix.os == 'macos-latest'
+      run: brew install cmake ninja
+
+    - name: Setup MSVC
+      if: matrix.os == 'windows-latest' && matrix.compiler == 'msvc'
+      uses: ilammy/msvc-dev-cmd@v1
+
+    - name: Configure CMake
+      run: |
+        mkdir build
+        cd build
+        if [ "${{ matrix.os }}" = "windows-latest" ]; then
+          cmake .. -G "Ninja" \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_CXX_STANDARD=${{ matrix.std }} \
+            -DMATRIX_LINEAR_BUILD_TESTS=ON \
+            -DMATRIX_LINEAR_BUILD_EXAMPLES=ON
+        else
+          if [ "${{ matrix.compiler }}" = "clang" ]; then
+            export CC=clang
+            export CXX=clang++
+          else
+            export CC=gcc
+            export CXX=g++
+          fi
+          cmake .. -G "Ninja" \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_CXX_STANDARD=${{ matrix.std }} \
+            -DMATRIX_LINEAR_BUILD_TESTS=ON \
+            -DMATRIX_LINEAR_BUILD_EXAMPLES=ON
+        fi
+      shell: bash
+
+    - name: Build
+      run: cmake --build build --config Release
+
+    - name: Test
+      run: cd build && ctest --output-on-failure -C Release
+      shell: bash
+
+  sanitizers:
+    name: Sanitizers (ASan + UBSan)
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Install Dependencies
+      run: sudo apt-get update && sudo apt-get install -y cmake ninja-build clang
+
+    - name: Configure with Sanitizers
+      run: |
+        mkdir build
+        cd build
+        export CC=clang
+        export CXX=clang++
+        cmake .. -G Ninja \
+          -DCMAKE_BUILD_TYPE=Debug \
+          -DCMAKE_CXX_STANDARD=17 \
+          -DMATRIX_LINEAR_BUILD_TESTS=ON \
+          -DCMAKE_CXX_FLAGS="-fsanitize=address,undefined -fno-omit-frame-pointer"
+
+    - name: Build
+      run: cmake --build build
+
+    - name: Test with Sanitizers
+      run: cd build && ctest --output-on-failure
+      env:
+        ASAN_OPTIONS: detect_leaks=1:strict_string_checks=1:detect_stack_use_after_return=1
+        UBSAN_OPTIONS: print_stacktrace=1
+
+  constexpr-tests:
+    name: Constexpr Validation (C++14+)
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Install Dependencies
+      run: sudo apt-get update && sudo apt-get install -y cmake ninja-build g++
+
+    - name: Build with C++14
+      run: |
+        mkdir build-cpp14
+        cd build-cpp14
+        cmake .. -G Ninja -DCMAKE_CXX_STANDARD=14 -DMATRIX_LINEAR_BUILD_TESTS=ON
+        cmake --build .
+        ctest --output-on-failure
+
+    - name: Build with C++20
+      run: |
+        mkdir build-cpp20
+        cd build-cpp20
+        cmake .. -G Ninja -DCMAKE_CXX_STANDARD=20 -DMATRIX_LINEAR_BUILD_TESTS=ON
+        cmake --build .
+        ctest --output-on-failure
+
+  plantuml-validation:
+    name: Validate PlantUML Diagrams
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Setup Java
+      uses: actions/setup-java@v4
+      with:
+        distribution: 'temurin'
+        java-version: '17'
+
+    - name: Download PlantUML
+      run: |
+        wget https://github.com/plantuml/plantuml/releases/download/v1.2024.3/plantuml-1.2024.3.jar
+        mv plantuml-1.2024.3.jar plantuml.jar
+
+    - name: Validate PlantUML Files
+      run: |
+        cd design
+        for file in *.puml; do
+          echo "Validating $file..."
+          java -jar ../plantuml.jar -tsvg "$file" || echo "Warning: $file has syntax errors"
+        done
+
+    - name: Check for Errors
+      run: |
+        cd design
+        error_count=0
+        for file in *.svg; do
+          if grep -q "Syntax Error" "$file"; then
+            echo "ERROR: $file contains syntax errors"
+            error_count=$((error_count + 1))
+          fi
+        done
+        if [ $error_count -gt 0 ]; then
+          echo "$error_count diagram(s) have errors"
+          exit 1
+        fi
+
+  format-check:
+    name: Code Format Check
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Install clang-format
+      run: sudo apt-get update && sudo apt-get install -y clang-format
+
+    - name: Check Formatting
+      run: |
+        find include tests examples -name '*.hpp' -o -name '*.cpp' | \
+        xargs clang-format --dry-run --Werror

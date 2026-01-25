@@ -1,0 +1,204 @@
+@startuml
+
+title C++ Standard Adaptive Features
+
+skinparam backgroundColor #FEFEFE
+
+
+' ---------------------------------------------------------
+' C++11 Baseline
+' ---------------------------------------------------------
+class Cpp11 {
+    + required_features :
+    constexpr limited
+    alignas 16
+    static_assert
+    enable_if
+    variadic_templates
+    range_based_for
+    is_trivially_copyable
+    numeric_limits epsilon
+    --
+    macros :
+    MATRIX_CONSTEXPR
+    MATRIX_NODISCARD empty
+    MATRIX_INLINE_VAR static constexpr
+    MATRIX_BIT_CAST memcpy based
+}
+
+note right of Cpp11
+    Fully compatible baseline.
+    Provides fallback implementations
+    for newer features.
+end note
+
+
+' ---------------------------------------------------------
+' C++14 Extensions
+' ---------------------------------------------------------
+class Cpp14 {
+    + new_features :
+    relaxed_constexpr
+    generic_lambdas
+    binary_literals
+    --
+    macros :
+    MATRIX_CONSTEXPR14 constexpr
+    --
+    benefits :
+    more compile time operations
+    constexpr loops and conditionals
+    better optimization
+}
+
+note right of Cpp14
+    Detection:
+    if __cplusplus >= 201402L
+
+    Impact:
+    small performance improvements
+    for compile time computations.
+end note
+
+
+' ---------------------------------------------------------
+' C++17 Extensions
+' ---------------------------------------------------------
+class Cpp17 {
+    + new_features :
+    nodiscard attribute
+    if_constexpr
+    inline_variables
+    structured_bindings
+    --
+    macros :
+    MATRIX_NODISCARD nodiscard
+    MATRIX_CONSTEXPR17 constexpr
+    MATRIX_INLINE_VAR inline
+    MATRIX_IF_CONSTEXPR if constexpr
+    --
+    benefits :
+    compile time branching
+    reduced code bloat
+    better warnings
+    improved metaprogramming
+}
+
+note right of Cpp17
+    Detection:
+    if __cplusplus >= 201703L
+
+    Impact:
+    code size reduction
+    modest performance gains.
+end note
+
+
+' ---------------------------------------------------------
+' C++20 Extensions
+' ---------------------------------------------------------
+class Cpp20 {
+    + new_features :
+    bit_cast
+    constexpr_vector
+    likely_unlikely
+    consteval
+    constinit
+    concepts
+    --
+    macros :
+    MATRIX_CONSTEXPR20 constexpr
+    MATRIX_CONSTEVAL consteval
+    MATRIX_CONSTINIT constinit
+    MATRIX_LIKELY likely
+    MATRIX_UNLIKELY unlikely
+    MATRIX_BIT_CAST bit_cast
+    --
+    benefits :
+    safe type conversions
+    guaranteed compile time evaluation
+    branch prediction hints
+    type constraints
+    reduced undefined behavior
+}
+
+note right of Cpp20
+    Detection:
+    if __cplusplus >= 202002L
+
+    Impact:
+    improved performance
+    better code generation
+    sanitizer friendly.
+end note
+
+
+' ---------------------------------------------------------
+' C++23 Extensions
+' ---------------------------------------------------------
+class Cpp23 {
+    + new_features :
+    if_consteval
+    multidimensional_subscript
+    extended_floating_point
+    --
+    macros :
+    MATRIX_CONSTEXPR23 constexpr
+    MATRIX_IF_CONSTEVAL
+    --
+    benefits :
+    better compile time detection
+    improved metaprogramming
+    enhanced type safety
+}
+
+note right of Cpp23
+    Detection:
+    if __cplusplus >= 202302L
+
+    Impact:
+    incremental improvements
+    better compile time diagnostics.
+end note
+
+
+' ---------------------------------------------------------
+' C++26 Extensions
+' ---------------------------------------------------------
+class Cpp26 {
+    + new_features :
+    constexpr_sin
+    constexpr_cos
+    constexpr_sqrt
+    constexpr_cmath
+    --
+    macros :
+    MATRIX_CONSTEXPR26 constexpr
+    MATRIX_CONSTEXPR_TRIG constexpr
+    --
+    benefits :
+    compile time rotation matrices
+    arbitrary angle transforms
+    zero runtime trig cost
+}
+
+note right of Cpp26
+    Detection:
+    if __cplusplus >= 202600L
+
+    Impact:
+    performance gains for
+    rotation heavy applications.
+end note
+
+
+' ---------------------------------------------------------
+' Upgrade Flow
+' ---------------------------------------------------------
+Cpp11 --> Cpp14 : upgrade
+Cpp14 --> Cpp17 : upgrade
+Cpp17 --> Cpp20 : upgrade
+Cpp20 --> Cpp23 : upgrade
+Cpp23 --> Cpp26 : upgrade
+
+@enduml

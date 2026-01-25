@@ -1,0 +1,46 @@
+# Copyright (c) 2026 MatrixLib Contributors
+# SPDX-License-Identifier: MIT
+
+config MATRIXLIB
+	bool "MatrixLib - Linear Algebra Library"
+	help
+	  Enable MatrixLib header-only linear algebra library.
+	  Provides Vec, Mat, SquareMat, and Quaternion classes
+	  optimized for embedded systems.
+
+if MATRIXLIB
+
+config MATRIXLIB_NEON
+	bool "Enable ARM NEON optimizations"
+	depends on CPU_CORTEX_A || ARM64
+	help
+	  Enable ARM NEON SIMD acceleration for vector, matrix,
+	  and quaternion operations on ARM Cortex-A processors
+	  and ARM64 platforms (including Apple Silicon).
+	  Provides significant performance improvements for
+	  float32 operations on vectors of size 2, 3, and 4.
+	  Also defines MATRIXLIB_ENABLE_NEON for compatibility
+	  with non-Zephyr build switches.
+
+config MATRIXLIB_CMSIS
+	bool "Enable CMSIS-DSP optimizations"
+	depends on CMSIS_DSP
+	help
+	  Enable CMSIS-DSP hardware acceleration for vector,
+	  matrix, and quaternion operations on ARM Cortex-M
+	  processors. Requires CMSIS-DSP to be enabled.
+	  Also defines MATRIXLIB_ENABLE_CMSIS for compatibility
+	  with non-Zephyr build switches.
+
+config MATRIXLIB_MVE
+	bool "Enable ARM MVE (Helium) optimizations"
+	depends on CPU_CORTEX_M
+	help
+	  Enable ARM MVE (Helium) SIMD acceleration for vector,
+	  matrix, and quaternion operations on Cortex-M processors
+	  that support MVE. This option is intended for Cortex-M
+	  profiles with Helium extensions.
+	  Also defines MATRIXLIB_ENABLE_MVE for compatibility
+	  with non-Zephyr build switches.
+
+endif # MATRIXLIB

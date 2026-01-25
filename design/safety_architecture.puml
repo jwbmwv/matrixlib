@@ -1,0 +1,214 @@
+@startuml
+
+title Type Safety and UB Prevention Architecture
+
+skinparam backgroundColor #FEFEFE
+
+
+' ---------------------------------------------------------
+' Safe Type Conversion
+' ---------------------------------------------------------
+class SafeTypeConversion {
+    + bit_cast : safe conversion
+    + fallback_memcpy : template fallback
+    --
+    benefits:
+    no strict aliasing violations
+    no undefined behavior
+    zero cost optimization
+    sanitizer clean
+}
+
+note right of SafeTypeConversion
+    Replaces unsafe reinterpret_cast.
+    Use cases:
+    type punning
+    bit manipulation
+    SIMD data loading
+end note
+
+
+' ---------------------------------------------------------
+' Quaternion Safety
+' ---------------------------------------------------------
+class QuaternionSafety {
+    + vec_accessor : safe return by value
+    + set_vec : direct assignment
+    + rvo : return value optimization
+    --
+    benefits:
+    eliminates type punning UB
+    passes UBSan clean
+    same performance as unsafe code
+}
+
+note right of QuaternionSafety
+    Safe vec() returns a new Vec3f.
+    No aliasing or reinterpret_cast.
+end note
+
+
+' ---------------------------------------------------------
+' SIMD Safety
+' ---------------------------------------------------------
+class SimdSafety {
+    + type_guarded_casts : compile time checks
+    + neon_safety : float only aligned
+    + cmsis_safety : vendor tested API
+    --
+    guarantees:
+    memory layout compatible
+    safe intrinsic usage
+    trivially copyable verification
+}
+
+note right of SimdSafety
+    Verified with static_assert on
+    std::is_trivially_copyable<VecFloatN>.
+end note
+
+
+' ---------------------------------------------------------
+' Comparison Safety
+' ---------------------------------------------------------
+class ComparisonSafety {
+    + approx_equal_before : hardcoded epsilon
+    + approx_equal_after : numeric_limits epsilon
+    --
+    benefits:
+    type specific precision
+    correct machine epsilon
+    float and double appropriate
+}
+
+note right of ComparisonSafety
+    Applies to:
+    Vec approx_equal
+    Mat approx_equal
+    Quaternion approx_equal
+    Vec safe_normalized
+    Vec from_homogeneous
+end note
+
+
+' ---------------------------------------------------------
+' Static Verification
+' ---------------------------------------------------------
+class StaticVerification {
+    + replaces_is_pod : future proof
+    + verified_types : trivially copyable
+    --
+    guarantees:
+    memcpy safe
+    DMA compatible
+    C interface safe
+    binary serializable
+}
+
+note right of StaticVerification
+    std_is_pod deprecated in C++20
+    removed in C++23
+    std_is_trivially_copyable works in all versions
+end note
+
+
+' ---------------------------------------------------------
+' UndefinedBehaviorSanitizer
+' ---------------------------------------------------------
+class UbsanSafety {
+    + checks :
+    type punning
+    strict aliasing
+    null deref
+    signed overflow
+    unaligned access
+    --
+    result:
+    zero errors
+    sanitizer clean
+}
+
+note right of UbsanSafety
+    Test command:
+    fsanitize undefined
+    Run matrixlib gtests
+end note
+
+
+' ---------------------------------------------------------
+' AddressSanitizer
+' ---------------------------------------------------------
+class AsanSafety {
+    + checks :
+    buffer overflow
+    use after free
+    use after return
+    memory leaks
+    invalid alignment
+    --
+    result:
+    zero errors
+    no leaks
+    proper alignment
+}
+
+note right of AsanSafety
+    Test command:
+    fsanitize address
+    Run matrixlib gtests
+end note
+
+
+' ---------------------------------------------------------
+' Edge Case Tests
+' ---------------------------------------------------------
+class EdgeCaseTests {
+    + singular_matrices
+    + nan_inf_handling
+    + zero_normalization
+    + quaternion_aliasing
+    + cross_product_edges
+    + simd_alignment
+    --
+    total_tests = 18
+}
+
+note right of EdgeCaseTests
+    Designed to trigger sanitizers.
+end note
+
+
+' ---------------------------------------------------------
+' Documentation
+' ---------------------------------------------------------
+class SafetyDocumentation {
+    + type_punning_fixes
+    + bit_cast_usage
+    + quaternion_vec_safety
+    + simd_safety_verification
+    + testing_instructions
+    + best_practices
+    + ci_cd_integration
+}
+
+class SafetyImprovements {
+    + summary_of_changes
+    + files_modified
+    + impact_analysis
+    + performance_verification
+    + next_steps
+}
+
+
+' ---------------------------------------------------------
+' Relationships
+' ---------------------------------------------------------
+SafeTypeConversion --> QuaternionSafety : applies to
+QuaternionSafety --> SimdSafety : enables
+ComparisonSafety --> StaticVerification : complements
+UbsanSafety --> EdgeCaseTests : validates
+AsanSafety --> EdgeCaseTests : validates
+EdgeCaseTests --> SafetyDocumentation : documented in
+SafetyDocumentation --> SafetyImprovements : summarized in
+
+@enduml

@@ -1,0 +1,101 @@
+@startuml "MatrixLib Transformation Pipeline"
+
+' MatrixLib 3D Transformation Pipeline
+' Shows typical usage patterns for 3D graphics
+
+title 3D Transformation Pipeline
+
+skinparam backgroundColor #FEFEFE
+skinparam sequenceArrowThickness 2
+
+actor User
+participant "Vec3f" as Vec
+participant "Mat4f" as Mat4
+participant "Mat3f" as Mat3
+participant "Quaternion<float>" as Quat
+
+' Generated with PlantUML 1.2025.10
+
+' Note: this diagram uses no `card` elements (no card->rectangle changes needed).
+
+== Object Space to World Space ==
+
+User -> Vec : position(1, 2, 3)
+activate Vec
+
+User -> Mat4 : translation(Vec3f(10, 5, 0))
+activate Mat4
+
+User -> Mat4 : rotation_y(π/4)
+Mat4 -> Mat3 : create 3×3 rotation
+activate Mat3
+Mat3 --> Mat4 : rotation matrix
+deactivate Mat3
+
+User -> Mat4 : model = translation * rotation * scale
+Mat4 --> User : 4×4 transform matrix
+
+User -> Mat4 : transform_point(model, position)
+Mat4 -> Vec : extend to Vec4(x, y, z, 1)
+Mat4 -> Vec : matrix multiplication
+Vec --> Mat4 : result Vec4
+Mat4 --> User : Vec3f world_position
+deactivate Mat4
+deactivate Vec
+
+== Quaternion Rotation ==
+
+User -> Quat : from_axis_angle(axis, angle)
+activate Quat
+Quat --> User : rotation quaternion
+
+User -> Vec : direction(0, 0, 1)
+activate Vec
+
+User -> Quat : rotate(direction)
+Quat -> Quat : conjugate()
+Quat -> Quat : q * v * q*
+Quat -> Vec : extract Vec3
+Vec --> Quat : rotated vector
+Quat --> User : rotated_direction
+deactivate Quat
+deactivate Vec
+
+== Camera Transform ==
+
+User -> Mat3 : look_at(forward, up)
+activate Mat3
+Mat3 -> Vec : normalize(forward)
+activate Vec
+Vec --> Mat3 : z_axis
+Mat3 -> Vec : cross(up, z_axis)
+Vec --> Mat3 : x_axis
+Mat3 -> Vec : cross(z_axis, x_axis)
+Vec --> Mat3 : y_axis
+deactivate Vec
+
+Mat3 --> User : view_rotation
+deactivate Mat3
+
+User -> Mat4 : combine rotation + translation
+activate Mat4
+Mat4 --> User : view_matrix
+deactivate Mat4
+
+== Interpolation ==
+
+User -> Quat : q1.slerp(q2, t)
+activate Quat
+Quat -> Quat : dot(q1, q2)
+Quat -> Quat : compute angle
+Quat -> Quat : spherical interpolation
+Quat --> User : interpolated rotation
+deactivate Quat
+
+User -> Vec : v1.lerp(v2, t)
+activate Vec
+Vec -> Vec : v1 + t * (v2 - v1)
+Vec --> User : interpolated position
+deactivate Vec
+
+@enduml
