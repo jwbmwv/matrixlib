@@ -449,14 +449,6 @@ public:
         return *this / norm;
     }
 
-    /// \brief Get the number of rows.
-    /// \return The number of rows.
-    MATRIX_CONSTEXPR std::uint32_t rows() const noexcept { return R; }
-
-    /// \brief Get the number of columns.
-    /// \return The number of columns.
-    MATRIX_CONSTEXPR std::uint32_t cols() const noexcept { return C; }
-
     /// \brief Bounds-checked element access.
     /// \param row The row index.
     /// \param col The column index.
@@ -526,10 +518,6 @@ public:
     /// \brief Get raw pointer to data (const).
     /// \return Const pointer to the underlying data array.
     const T* ptr() const noexcept { return data; }
-
-    /// \brief Get total number of elements.
-    /// \return The total number of elements (R * C).
-    MATRIX_CONSTEXPR std::uint32_t size() const noexcept { return R * C; }
 
     /// \brief Swap two matrices.
     /// \param other The matrix to swap with.

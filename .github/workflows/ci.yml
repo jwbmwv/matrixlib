@@ -39,18 +39,32 @@ jobs:
       if: matrix.os == 'ubuntu-latest'
       run: |
         sudo apt-get update
-        sudo apt-get install -y cmake ninja-build
+        sudo apt-get install -y cmake ninja-build libgtest-dev
         if [ "${{ matrix.compiler }}" = "clang" ]; then
           sudo apt-get install -y clang
         fi
+        # Build and install Google Test
+        cd /usr/src/gtest
+        sudo cmake .
+        sudo cmake --build . --target install
 
     - name: Install Dependencies (macOS)
       if: matrix.os == 'macos-latest'
-      run: brew install cmake ninja
+      run: brew install cmake ninja googletest
 
     - name: Setup MSVC
       if: matrix.os == 'windows-latest' && matrix.compiler == 'msvc'
       uses: ilammy/msvc-dev-cmd@v1
+
+    - name: Install Google Test (Windows)
+      if: matrix.os == 'windows-latest'
+      run: |
+        git clone https://github.com/google/googletest.git -b v1.14.0
+        cd googletest
+        cmake -B build -G "Ninja" -DCMAKE_INSTALL_PREFIX=C:/googletest
+        cmake --build build --config Release
+        cmake --install build
+      shell: bash
 
     - name: Configure CMake
       run: |
@@ -61,7 +75,8 @@ jobs:
             -DCMAKE_BUILD_TYPE=Release \
             -DCMAKE_CXX_STANDARD=${{ matrix.std }} \
             -DMATRIX_LINEAR_BUILD_TESTS=ON \
-            -DMATRIX_LINEAR_BUILD_EXAMPLES=ON
+            -DMATRIX_LINEAR_BUILD_EXAMPLES=ON \
+            -DCMAKE_PREFIX_PATH=C:/googletest
         else
           if [ "${{ matrix.compiler }}" = "clang" ]; then
             export CC=clang
