@@ -215,9 +215,8 @@ int main()
 
         Vec3f ndc_frame = transform_vertex(cube_vertices[0], new_mvp);
 
-        std::cout << "Frame " << frame << " (angle=" << std::setw(5) << rad_to_deg(orbit_angle)
-                  << "°): " << "NDC=(" << ndc_frame[0] << ", " << ndc_frame[1] << ", " << ndc_frame[2]
-                  << ")\n";
+        std::cout << "Frame " << frame << " (angle=" << std::setw(5) << rad_to_deg(orbit_angle) << "°): " << "NDC=("
+                  << ndc_frame[0] << ", " << ndc_frame[1] << ", " << ndc_frame[2] << ")\n";
     }
 
     // Frustum culling example
