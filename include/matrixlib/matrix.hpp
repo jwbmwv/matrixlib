@@ -85,18 +85,6 @@ public:
     /// \return Const row proxy.
     ConstRowProxy operator[](std::uint32_t row) const { return ConstRowProxy(&data[row * C]); }
 
-    /// \brief Get the total number of elements in the matrix.
-    /// \return The size of the matrix (R * C).
-    static constexpr std::size_t size() noexcept { return R * C; }
-
-    /// \brief Get the number of rows in the matrix.
-    /// \return The number of rows (R).
-    static constexpr std::size_t rows() noexcept { return R; }
-
-    /// \brief Get the number of columns in the matrix.
-    /// \return The number of columns (C).
-    static constexpr std::size_t cols() noexcept { return C; }
-
     /// \brief Addition operator.
     /// \param other The matrix to add.
     /// \return The result matrix.
@@ -449,6 +437,18 @@ public:
         return *this / norm;
     }
 
+    /// \brief Get the total number of elements in the matrix.
+    /// \return The size of the matrix (R * C).
+    MATRIX_CONSTEXPR std::uint32_t size() const noexcept { return R * C; }
+
+    /// \brief Get the number of rows.
+    /// \return The number of rows.
+    MATRIX_CONSTEXPR std::uint32_t rows() const noexcept { return R; }
+
+    /// \brief Get the number of columns.
+    /// \return The number of columns.
+    MATRIX_CONSTEXPR std::uint32_t cols() const noexcept { return C; }
+
     /// \brief Bounds-checked element access.
     /// \param row The row index.
     /// \param col The column index.
@@ -518,6 +518,10 @@ public:
     /// \brief Get raw pointer to data (const).
     /// \return Const pointer to the underlying data array.
     const T* ptr() const noexcept { return data; }
+
+    /// \brief Get total number of elements.
+    /// \return The total number of elements (R * C).
+    MATRIX_CONSTEXPR std::uint32_t size() const noexcept { return R * C; }
 
     /// \brief Swap two matrices.
     /// \param other The matrix to swap with.
