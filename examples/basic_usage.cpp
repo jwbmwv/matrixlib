@@ -121,8 +121,8 @@ int main()
     float quat_angle = 3.14159f / 4.0f;  // 45 degrees
     Quaternion<float> q(axis, quat_angle);
 
-    std::cout << "Quaternion (45° around Z): " << "w=" << q.w() << ", " << "x=" << q.x() << ", "
-              << "y=" << q.y() << ", " << "z=" << q.z() << "\n";
+    std::cout << "Quaternion (45° around Z): " << "w=" << q.w() << ", " << "x=" << q.x() << ", " << "y=" << q.y()
+              << ", " << "z=" << q.z() << "\n";
 
     Vec<float, 3> test_point(1.0f, 0.0f, 0.0f);
     Vec<float, 3> quat_rotated = q.rotate(test_point);
