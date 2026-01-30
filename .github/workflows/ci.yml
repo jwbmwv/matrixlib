@@ -43,10 +43,6 @@ jobs:
         if [ "${{ matrix.compiler }}" = "clang" ]; then
           sudo apt-get install -y clang
         fi
-        # Build and install Google Test
-        cd /usr/src/gtest
-        sudo cmake .
-        sudo cmake --build . --target install
 
     - name: Install Dependencies (macOS)
       if: matrix.os == 'macos-latest'
