@@ -1,17 +1,32 @@
 # Tests
 
-# Placeholder for unit tests
-# You can add Google Test, Catch2, or custom test framework here
+# Find Google Test
+find_package(GTest QUIET)
 
-# Example with custom test:
-# add_executable(test_vec test_vec.cpp)
-# target_link_libraries(test_vec PRIVATE matrixlib)
-# add_test(NAME test_vec COMMAND test_vec)
+if(GTest_FOUND)
+    include(GoogleTest)
+    message(STATUS "MatrixLib: Building Google Test suite")
 
-# Example with Google Test:
-# find_package(GTest REQUIRED)
-# add_executable(test_matrixlib test_vec.cpp test_mat.cpp test_quat.cpp)
-# target_link_libraries(test_matrixlib PRIVATE matrixlib GTest::GTest GTest::Main)
-# gtest_discover_tests(test_matrixlib)
+    # Create test executable
+    add_executable(matrixlib_gtests
+        google/test_constants.cpp
+        google/test_vec.cpp
+        google/test_mat.cpp
+        google/test_quat.cpp
+        google/test_edge_cases.cpp
+        google/test_constexpr.cpp
+    )
 
-message(STATUS "MatrixLib: Tests directory configured (add test files here)")
+    # Link libraries
+    target_link_libraries(matrixlib_gtests
+        PRIVATE
+            matrixlib
+            GTest::GTest
+            GTest::Main
+    )
+
+    # Discover tests
+    gtest_discover_tests(matrixlib_gtests)
+else()
+    message(WARNING "MatrixLib: Google Test not found, tests will not be built")
+endif()

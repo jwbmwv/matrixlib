@@ -195,5 +195,11 @@ jobs:
 
     - name: Check Formatting
       run: |
-        find include tests examples -name '*.hpp' -o -name '*.cpp' | \
-        xargs clang-format --dry-run --Werror
+        find include tests examples benchmarks -name '*.hpp' -o -name '*.cpp' | \
+        xargs clang-format --dry-run --Werror || true
+
+        # Run format check properly
+        files_to_check=$(find include tests examples benchmarks \( -name '*.hpp' -o -name '*.cpp' \))
+        if [ ! -z "$files_to_check" ]; then
+          echo "$files_to_check" | xargs clang-format --dry-run --Werror
+        fi
