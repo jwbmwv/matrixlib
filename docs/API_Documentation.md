@@ -13,6 +13,11 @@ A header-only C++11 linear algebra library providing efficient vector, matrix, a
 - **Type-safe**: Compile-time dimension checking
 - **Const-correct**: Full const correctness throughout
 - **Modular**: Include only what you need for faster compilation
+- **Safety features**:
+  - Bounds-checked `at()` accessors (debug mode only)
+  - Division-by-zero prevention
+  - Epsilon-based float comparisons
+  - No undefined behavior
 
 ## Including the Library
 

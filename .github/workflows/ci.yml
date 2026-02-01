@@ -96,6 +96,48 @@ jobs:
       run: cd build && ctest --output-on-failure -C Release
       shell: bash
 
+  coverage:
+    name: Code Coverage
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Install Dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y cmake ninja-build g++ lcov libgtest-dev
+
+    - name: Configure with Coverage
+      run: |
+        mkdir build
+        cd build
+        cmake .. -G Ninja \
+          -DCMAKE_BUILD_TYPE=Debug \
+          -DCMAKE_CXX_STANDARD=17 \
+          -DMATRIX_LINEAR_BUILD_TESTS=ON \
+          -DCMAKE_CXX_FLAGS="--coverage -fprofile-arcs -ftest-coverage"
+
+    - name: Build
+      run: cmake --build build
+
+    - name: Test
+      run: cd build && ctest --output-on-failure
+
+    - name: Generate Coverage Report
+      run: |
+        cd build
+        lcov --capture --directory . --output-file coverage.info
+        lcov --remove coverage.info '/usr/*' '*/tests/*' --output-file coverage.info
+        lcov --list coverage.info
+
+    - name: Upload to Codecov
+      uses: codecov/codecov-action@v4
+      with:
+        files: ./build/coverage.info
+        fail_ci_if_error: false
+        token: ${{ secrets.CODECOV_TOKEN }}
+
   sanitizers:
     name: Sanitizers (ASan + UBSan)
     runs-on: ubuntu-latest
@@ -126,6 +168,49 @@ jobs:
       env:
         ASAN_OPTIONS: detect_leaks=1:strict_string_checks=1:detect_stack_use_after_return=1
         UBSAN_OPTIONS: print_stacktrace=1
+
+  static-analysis:
+    name: Static Analysis
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Install Tools
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y clang-tidy cppcheck cmake ninja-build
+
+    - name: Run clang-tidy
+      run: |
+        mkdir build
+        cd build
+        cmake .. -G Ninja \
+          -DCMAKE_BUILD_TYPE=Release \
+          -DCMAKE_CXX_STANDARD=17 \
+          -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
+        cd ..
+        # Run clang-tidy on header files
+        find include/matrixlib -name '*.hpp' | xargs clang-tidy \
+          -p build \
+          --checks='-*,bugprone-*,performance-*,readability-*,modernize-*' \
+          --warnings-as-errors=false || true
+
+    - name: Run cppcheck
+      run: |
+        cppcheck \
+          --enable=warning,performance,portability \
+          --std=c++11 \
+          --suppress=missingIncludeSystem \
+          --error-exitcode=0 \
+          --inline-suppr \
+          -I include \
+          include/matrixlib/ 2>&1 | tee cppcheck-report.txt
+        # Fail only on errors (not warnings)
+        if grep -q "error:" cppcheck-report.txt; then
+          echo "::error::cppcheck found errors"
+          exit 1
+        fi
 
   constexpr-tests:
     name: Constexpr Validation (C++14+)
@@ -193,6 +278,84 @@ jobs:
           echo "$error_count diagram(s) have errors"
           exit 1
         fi
+
+  benchmark-regression:
+    name: Benchmark Regression Detection
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        fetch-depth: 0  # Need history for comparison
+
+    - name: Install Dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y cmake ninja-build g++ python3 python3-pip
+        pip3 install pandas
+
+    - name: Build Benchmarks
+      run: |
+        mkdir build
+        cd build
+        cmake .. -G Ninja \
+          -DCMAKE_BUILD_TYPE=Release \
+          -DCMAKE_CXX_STANDARD=17 \
+          -DMATRIX_LINEAR_BUILD_BENCHMARKS=ON
+        cmake --build .
+
+    - name: Run Benchmarks
+      run: |
+        cd build/benchmarks
+        ./bench_matrix_multiply --benchmark_format=json > current_results.json || true
+        ./bench_vector_ops --benchmark_format=json >> current_results.json || true
+        ./bench_simd --benchmark_format=json >> current_results.json || true
+
+    - name: Download Baseline
+      continue-on-error: true
+      uses: actions/download-artifact@v4
+      with:
+        name: benchmark-baseline
+        path: baseline/
+
+    - name: Compare Results
+      run: |
+        python3 << 'EOF'
+        import json
+        import os
+
+        if os.path.exists('baseline/baseline_results.json'):
+            with open('baseline/baseline_results.json') as f:
+                baseline = json.load(f)
+            with open('build/benchmarks/current_results.json') as f:
+                current = json.load(f)
+
+            print("Benchmark comparison:")
+            # Simple comparison logic
+            for bench in current.get('benchmarks', []):
+                name = bench.get('name', '')
+                current_time = bench.get('real_time', 0)
+                # Find corresponding baseline
+                baseline_bench = next((b for b in baseline.get('benchmarks', []) if b.get('name') == name), None)
+                if baseline_bench:
+                    baseline_time = baseline_bench.get('real_time', 0)
+                    if baseline_time > 0:
+                        ratio = current_time / baseline_time
+                        if ratio > 1.1:  # 10% slower
+                            print(f"⚠️  {name}: {ratio:.2f}x slower ({current_time:.1f}ns vs {baseline_time:.1f}ns)")
+                        elif ratio < 0.9:  # 10% faster
+                            print(f"✅ {name}: {ratio:.2f}x faster ({current_time:.1f}ns vs {baseline_time:.1f}ns)")
+        else:
+            print("No baseline found, this will become the new baseline")
+        EOF
+
+    - name: Upload Current as Baseline
+      if: github.ref == 'refs/heads/main'
+      uses: actions/upload-artifact@v4
+      with:
+        name: benchmark-baseline
+        path: build/benchmarks/current_results.json
+        retention-days: 90
 
   format-check:
     name: Code Format Check

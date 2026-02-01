@@ -12,7 +12,9 @@
 
 using namespace matrixlib;
 
-#define FLOAT_EPSILON 0.0001f
+// Use epsilon consistent with library's comparison tolerance (epsilon * 100)
+// std::numeric_limits<float>::epsilon() is ~1.19e-7, so * 100 gives ~1.19e-5
+#define FLOAT_EPSILON (std::numeric_limits<float>::epsilon() * 100.0f)
 
 static bool float_eq(float a, float b)
 {

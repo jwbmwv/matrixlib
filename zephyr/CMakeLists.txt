@@ -6,6 +6,11 @@ if(CONFIG_MATRIXLIB)
     # Add include directory
     zephyr_include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../include)
 
+    # Add compile definitions if debug mode is enabled
+    if(CONFIG_MATRIXLIB_DEBUG)
+        zephyr_compile_definitions(MATRIXLIB_DEBUG)
+    endif()
+
     # Add compile definitions if NEON is enabled
     if(CONFIG_MATRIXLIB_NEON)
         zephyr_compile_definitions(CONFIG_MATRIXLIB_NEON)

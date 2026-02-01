@@ -10,6 +10,16 @@ config MATRIXLIB
 
 if MATRIXLIB
 
+config MATRIXLIB_DEBUG
+	bool "Enable debug assertions and bounds checking"
+	default n
+	help
+	  Enable runtime assertions and bounds checking in MatrixLib.
+	  When enabled, the at() accessor methods will perform bounds
+	  checking using assert() in debug builds. This adds minimal
+	  overhead but helps catch out-of-bounds access during development.
+	  Recommended for development and testing, disable for production.
+
 config MATRIXLIB_NEON
 	bool "Enable ARM NEON optimizations"
 	depends on CPU_CORTEX_A || ARM64

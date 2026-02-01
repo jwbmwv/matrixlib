@@ -31,8 +31,14 @@ public:
     // and efficient SIMD operations. Row-major storage: data[(row * C) + col]
     alignas(16) T data[R * C];  // Aligned for SIMD performance
 
-    /// \brief Default constructor.
-    Mat() {}
+    /// \brief Default constructor (zero-initialized for safety).
+    MATRIX_CONSTEXPR Mat()
+    {
+        for (std::uint32_t i = 0; i < R * C; ++i)
+        {
+            data[i] = T(0);
+        }
+    }
 
     /// \brief Constructor from array.
     /// \param arr The array to copy from.
@@ -63,6 +69,24 @@ public:
         RowProxy(T* r) : row(r) {}
         T& operator[](std::uint32_t col) { return row[col]; }
         const T& operator[](std::uint32_t col) const { return row[col]; }
+
+        /// \brief Bounds-checked column access.
+        /// \note In debug builds (MATRIXLIB_DEBUG defined), triggers assertion if col >= C.
+        T& at(std::uint32_t col)
+        {
+#ifdef MATRIXLIB_DEBUG
+            assert(col < C && "Mat::RowProxy::at: column out of range");
+#endif
+            return row[col];
+        }
+
+        const T& at(std::uint32_t col) const
+        {
+#ifdef MATRIXLIB_DEBUG
+            assert(col < C && "Mat::RowProxy::at: column out of range");
+#endif
+            return row[col];
+        }
     };
 
     /// \brief Const proxy class for row access.
@@ -73,6 +97,16 @@ public:
     public:
         ConstRowProxy(const T* r) : row(r) {}
         const T& operator[](std::uint32_t col) const { return row[col]; }
+
+        /// \brief Bounds-checked column access.
+        /// \note In debug builds (MATRIXLIB_DEBUG defined), triggers assertion if col >= C.
+        const T& at(std::uint32_t col) const
+        {
+#ifdef MATRIXLIB_DEBUG
+            assert(col < C && "Mat::ConstRowProxy::at: column out of range");
+#endif
+            return row[col];
+        }
     };
 
     /// \brief Subscript operator (returns row proxy for mat[row][col]).
@@ -84,6 +118,30 @@ public:
     /// \param row The row index.
     /// \return Const row proxy.
     ConstRowProxy operator[](std::uint32_t row) const { return ConstRowProxy(&data[row * C]); }
+
+    /// \brief Bounds-checked row access.
+    /// \param row The row index.
+    /// \return Row proxy.
+    /// \note In debug builds (MATRIXLIB_DEBUG defined), triggers assertion if row >= R.
+    RowProxy at(std::uint32_t row)
+    {
+#ifdef MATRIXLIB_DEBUG
+        assert(row < R && "Mat::at: row out of range");
+#endif
+        return RowProxy(&data[row * C]);
+    }
+
+    /// \brief Bounds-checked row access (const).
+    /// \param row The row index.
+    /// \return Const row proxy.
+    /// \note In debug builds (MATRIXLIB_DEBUG defined), triggers assertion if row >= R.
+    ConstRowProxy at(std::uint32_t row) const
+    {
+#ifdef MATRIXLIB_DEBUG
+        assert(row < R && "Mat::at: row out of range");
+#endif
+        return ConstRowProxy(&data[row * C]);
+    }
 
     /// \brief Addition operator.
     /// \param other The matrix to add.
@@ -130,6 +188,16 @@ public:
     MATRIX_CONSTEXPR MATRIX_NODISCARD Mat operator/(T scalar) const noexcept
     {
         Mat result;
+        // Check for zero to avoid undefined behavior (minimal overhead)
+        if (scalar == T(0))
+        {
+            // Return zero matrix for safety
+            for (std::uint32_t i = 0; i < R * C; ++i)
+            {
+                result.data[i] = T(0);
+            }
+            return result;
+        }
         for (std::uint32_t i = 0; i < R * C; ++i)
         {
             result.data[i] = data[i] / scalar;
@@ -311,9 +379,42 @@ public:
 
     /// \brief Equality operator.
     /// \param other The matrix to compare.
-    /// \return True if equal.
+    /// \return True if equal (uses epsilon comparison for floating point types).
     MATRIX_CONSTEXPR bool operator==(const Mat& other) const noexcept
     {
+#ifdef CONFIG_MATRIXLIB_NEON
+        // SIMD path for 4x4 float matrix equality comparison
+        MATRIX_IF_CONSTEXPR(std::is_same<T, float>::value && R == 4 && C == 4)
+        {
+            MATRIX_LIKELY
+            float32x4_t eps = vdupq_n_f32(std::numeric_limits<float>::epsilon());
+            for (std::uint32_t i = 0; i < 4; ++i)
+            {
+                float32x4_t a = vld1q_f32(&data[i * 4]);
+                float32x4_t b = vld1q_f32(&other.data[i * 4]);
+                float32x4_t diff = vabdq_f32(a, b);
+                uint32x4_t cmp = vcleq_f32(diff, eps);
+                uint64x2_t cmp64 = vreinterpretq_u64_u32(cmp);
+                if (!(vgetq_lane_u64(cmp64, 0) == ~0ULL && vgetq_lane_u64(cmp64, 1) == ~0ULL))
+                    return false;
+            }
+            return true;
+        }
+#endif
+        // For floating point types, use epsilon comparison
+        MATRIX_IF_CONSTEXPR(std::is_floating_point<T>::value)
+        {
+            MATRIX_LIKELY
+            for (std::uint32_t i = 0; i < R * C; ++i)
+            {
+                if (std::abs(data[i] - other.data[i]) > std::numeric_limits<T>::epsilon())
+                {
+                    return false;
+                }
+            }
+            return true;
+        }
+        // For integral types, use exact comparison
         for (std::uint32_t i = 0; i < R * C; ++i)
         {
             if (data[i] != other.data[i])
@@ -327,7 +428,7 @@ public:
     /// \brief Inequality operator.
     /// \param other The matrix to compare.
     /// \return True if not equal.
-    bool operator!=(const Mat& other) const { return !(*this == other); }
+    bool operator!=(const Mat& other) const noexcept { return !(*this == other); }
 
     /// \brief Addition assignment operator.
     /// \param other The matrix to add.
@@ -370,6 +471,16 @@ public:
     /// \return Reference to this.
     MATRIX_CONSTEXPR Mat& operator/=(T scalar) noexcept
     {
+        // Check for zero to avoid undefined behavior (minimal overhead)
+        if (scalar == T(0))
+        {
+            // Set to zero for safety
+            for (std::uint32_t i = 0; i < R * C; ++i)
+            {
+                data[i] = T(0);
+            }
+            return *this;
+        }
         for (std::uint32_t i = 0; i < R * C; ++i)
         {
             data[i] = data[i] / scalar;
@@ -715,6 +826,8 @@ public:
     {
         Mat<T, N, N> temp = *this;
         std::uint32_t rank = 0;
+        // Use epsilon for floating point, zero for integers
+        const T epsilon = std::is_floating_point<T>::value ? std::numeric_limits<T>::epsilon() * T(100) : T(0);
         for (std::uint32_t i = 0; i < N; ++i)
         {
             // Find pivot
@@ -726,7 +839,7 @@ public:
                     max_row = k;
                 }
             }
-            if (temp.data[(max_row * N) + i] == T(0))
+            if (std::abs(temp.data[(max_row * N) + i]) <= epsilon)
             {
                 continue;  // No pivot in this column
             }
@@ -760,6 +873,8 @@ public:
     {
         Mat<T, N, N> temp = *this;
         T det = T(1);
+        // Use epsilon for floating point, zero for integers
+        const T epsilon = std::is_floating_point<T>::value ? std::numeric_limits<T>::epsilon() * T(100) : T(0);
         for (std::uint32_t i = 0; i < N; ++i)
         {
             // Find pivot
@@ -771,7 +886,7 @@ public:
                     max_row = k;
                 }
             }
-            if (temp.data[(max_row * N) + i] == T(0))
+            if (std::abs(temp.data[(max_row * N) + i]) <= epsilon)
             {
                 return T(0);
             }
@@ -892,6 +1007,361 @@ public:
         }
 
         return result;
+    }
+
+    /// \brief QR decomposition using Gram-Schmidt orthogonalization.
+    /// \return Pair of Q (orthogonal) and R (upper triangular) matrices.
+    /// \note Q * R = A (this matrix). Useful for solving least-squares problems.
+    ///       For numerical stability, consider using modified Gram-Schmidt.
+    std::pair<SquareMat, SquareMat> qr() const
+    {
+        SquareMat Q;
+        SquareMat R;
+
+        // Initialize R to zero
+        for (std::uint32_t i = 0; i < N * N; ++i)
+        {
+            R.data[i] = T(0);
+        }
+
+        // Modified Gram-Schmidt (more numerically stable)
+        Vec<T, N> columns[N];
+
+        // Extract columns
+        for (std::uint32_t j = 0; j < N; ++j)
+        {
+            for (std::uint32_t i = 0; i < N; ++i)
+            {
+                columns[j].data[i] = this->data[(i * N) + j];
+            }
+        }
+
+        // Orthogonalize
+        for (std::uint32_t j = 0; j < N; ++j)
+        {
+            Vec<T, N> q_j = columns[j];
+
+            // Subtract projections onto previous columns
+            for (std::uint32_t k = 0; k < j; ++k)
+            {
+                Vec<T, N> q_k;
+                for (std::uint32_t i = 0; i < N; ++i)
+                {
+                    q_k.data[i] = Q.data[(i * N) + k];
+                }
+
+                T dot = q_j.dot(q_k);
+                R.data[(k * N) + j] = dot;
+
+                q_j = q_j - q_k * dot;
+            }
+
+            // Normalize
+            T norm = q_j.length();
+            R.data[(j * N) + j] = norm;
+
+            if (norm > std::numeric_limits<T>::epsilon())
+            {
+                q_j = q_j / norm;
+            }
+
+            // Store in Q
+            for (std::uint32_t i = 0; i < N; ++i)
+            {
+                Q.data[(i * N) + j] = q_j.data[i];
+            }
+        }
+
+        return std::make_pair(Q, R);
+    }
+
+    /// \brief Solve linear system Ax = b using QR decomposition.
+    /// \param b The right-hand side vector.
+    /// \return Solution vector x.
+    /// \note Uses QR decomposition for numerical stability. Suitable for least-squares.
+    ///       For efficiency, if solving multiple systems with same A, compute QR once.
+    Vec<T, N> solve_qr(const Vec<T, N>& b) const
+    {
+        auto [Q, R] = qr();
+
+        // Compute Q^T * b
+        Vec<T, N> y;
+        for (std::uint32_t i = 0; i < N; ++i)
+        {
+            T sum = T(0);
+            for (std::uint32_t j = 0; j < N; ++j)
+            {
+                sum += Q.data[(j * N) + i] * b.data[j];
+            }
+            y.data[i] = sum;
+        }
+
+        // Back substitution: solve Rx = y
+        Vec<T, N> x;
+        for (int i = N - 1; i >= 0; --i)
+        {
+            T sum = y.data[i];
+            for (std::uint32_t j = i + 1; j < N; ++j)
+            {
+                sum -= R.data[(i * N) + j] * x.data[j];
+            }
+            x.data[i] = sum / R.data[(i * N) + i];
+        }
+
+        return x;
+    }
+
+    /// \brief LU decomposition with partial pivoting (Doolittle algorithm).
+    /// \return Tuple of (L, U, P) where PA = LU.
+    /// \note L is lower triangular with 1s on diagonal, U is upper triangular.
+    ///       P is permutation matrix for numerical stability.
+    ///       Time complexity: O(N³), Space: O(N²)
+    std::tuple<SquareMat, SquareMat, SquareMat> lu() const
+    {
+        SquareMat L = SquareMat::identity();
+        SquareMat U = *this;
+        SquareMat P = SquareMat::identity();
+
+        for (std::uint32_t k = 0; k < N - 1; ++k)
+        {
+            // Find pivot
+            std::uint32_t pivot_row = k;
+            T max_val = std::abs(U.data[(k * N) + k]);
+
+            for (std::uint32_t i = k + 1; i < N; ++i)
+            {
+                T val = std::abs(U.data[(i * N) + k]);
+                if (val > max_val)
+                {
+                    max_val = val;
+                    pivot_row = i;
+                }
+            }
+
+            // Swap rows in U and P
+            if (pivot_row != k)
+            {
+                for (std::uint32_t j = 0; j < N; ++j)
+                {
+                    std::swap(U.data[(k * N) + j], U.data[(pivot_row * N) + j]);
+                    std::swap(P.data[(k * N) + j], P.data[(pivot_row * N) + j]);
+                    if (j < k)
+                    {
+                        std::swap(L.data[(k * N) + j], L.data[(pivot_row * N) + j]);
+                    }
+                }
+            }
+
+            // Eliminate column k
+            for (std::uint32_t i = k + 1; i < N; ++i)
+            {
+                if (std::abs(U.data[(k * N) + k]) > std::numeric_limits<T>::epsilon())
+                {
+                    T factor = U.data[(i * N) + k] / U.data[(k * N) + k];
+                    L.data[(i * N) + k] = factor;
+
+                    for (std::uint32_t j = k; j < N; ++j)
+                    {
+                        U.data[(i * N) + j] -= factor * U.data[(k * N) + j];
+                    }
+                }
+            }
+        }
+
+        return std::make_tuple(L, U, P);
+    }
+
+    /// \brief Cholesky decomposition for symmetric positive-definite matrices.
+    /// \return Lower triangular matrix L where A = L * L^T.
+    /// \note Only works for symmetric positive-definite matrices.
+    ///       More efficient than LU: O(N³/3) vs O(2N³/3).
+    ///       Numerically stable for well-conditioned matrices.
+    SquareMat cholesky() const
+    {
+        SquareMat L;
+
+        for (std::uint32_t i = 0; i < N; ++i)
+        {
+            for (std::uint32_t j = 0; j <= i; ++j)
+            {
+                T sum = T(0);
+
+                if (i == j)
+                {
+                    for (std::uint32_t k = 0; k < j; ++k)
+                    {
+                        sum += L.data[(j * N) + k] * L.data[(j * N) + k];
+                    }
+
+                    T diag = (*this)(j, j) - sum;
+                    if (diag <= T(0))
+                    {
+                        // Matrix not positive definite
+                        L.data[(j * N) + j] = T(0);
+                    }
+                    else
+                    {
+                        L.data[(j * N) + j] = std::sqrt(diag);
+                    }
+                }
+                else
+                {
+                    for (std::uint32_t k = 0; k < j; ++k)
+                    {
+                        sum += L.data[(i * N) + k] * L.data[(j * N) + k];
+                    }
+
+                    if (std::abs(L.data[(j * N) + j]) > std::numeric_limits<T>::epsilon())
+                    {
+                        L.data[(i * N) + j] = ((*this)(i, j) - sum) / L.data[(j * N) + j];
+                    }
+                    else
+                    {
+                        L.data[(i * N) + j] = T(0);
+                    }
+                }
+            }
+        }
+
+        return L;
+    }
+
+    /// \brief Solve linear system using Cholesky decomposition (for SPD matrices).
+    /// \param b The right-hand side vector.
+    /// \return Solution vector x.
+    /// \note Requires symmetric positive-definite matrix. More efficient than LU.
+    Vec<T, N> solve_cholesky(const Vec<T, N>& b) const
+    {
+        SquareMat L = cholesky();
+
+        // Forward substitution: solve Ly = b
+        Vec<T, N> y;
+        for (std::uint32_t i = 0; i < N; ++i)
+        {
+            T sum = b.data[i];
+            for (std::uint32_t j = 0; j < i; ++j)
+            {
+                sum -= L.data[(i * N) + j] * y.data[j];
+            }
+            y.data[i] = sum / L.data[(i * N) + i];
+        }
+
+        // Back substitution: solve L^T x = y
+        Vec<T, N> x;
+        for (int i = N - 1; i >= 0; --i)
+        {
+            T sum = y.data[i];
+            for (std::uint32_t j = i + 1; j < N; ++j)
+            {
+                sum -= L.data[(j * N) + i] * x.data[j];
+            }
+            x.data[i] = sum / L.data[(i * N) + i];
+        }
+
+        return x;
+    }
+
+    /// \brief Power iteration method for dominant eigenvalue/eigenvector.
+    /// \param max_iterations Maximum number of iterations (default: 100).
+    /// \param tolerance Convergence tolerance (default: 1e-6).
+    /// \return Pair of (eigenvalue, eigenvector).
+    /// \note Finds largest eigenvalue (by magnitude) and corresponding eigenvector.
+    ///       Converges slowly for eigenvalues close in magnitude.
+    ///       For small matrices (2x2, 3x3), direct methods may be faster.
+    std::pair<T, Vec<T, N>> powerIteration(std::uint32_t max_iterations = 100, T tolerance = T(1e-6)) const
+    {
+        // Start with random vector
+        Vec<T, N> v;
+        for (std::uint32_t i = 0; i < N; ++i)
+        {
+            v.data[i] = T(1);
+        }
+        v = v.normalized();
+
+        T eigenvalue = T(0);
+
+        for (std::uint32_t iter = 0; iter < max_iterations; ++iter)
+        {
+            // Multiply matrix by vector
+            Vec<T, N> Av;
+            for (std::uint32_t i = 0; i < N; ++i)
+            {
+                T sum = T(0);
+                for (std::uint32_t j = 0; j < N; ++j)
+                {
+                    sum += (*this)(i, j) * v.data[j];
+                }
+                Av.data[i] = sum;
+            }
+
+            // Rayleigh quotient: eigenvalue = v^T * A * v
+            T new_eigenvalue = v.dot(Av);
+
+            // Normalize
+            v = Av.normalized();
+
+            // Check convergence
+            if (std::abs(new_eigenvalue - eigenvalue) < tolerance)
+            {
+                return std::make_pair(new_eigenvalue, v);
+            }
+
+            eigenvalue = new_eigenvalue;
+        }
+
+        return std::make_pair(eigenvalue, v);
+    }
+
+    /// \brief QR algorithm for eigenvalue computation (iterative).
+    /// \param max_iterations Maximum number of iterations (default: 100).
+    /// \param tolerance Convergence tolerance (default: 1e-6).
+    /// \return Vector of eigenvalues (unsorted).
+    /// \note Uses iterative QR algorithm. For small matrices, may not fully converge.
+    ///       Works best for symmetric matrices. Non-symmetric may have complex eigenvalues
+    ///       (returned as real parts only).
+    Vec<T, N> eigenvaluesQR(std::uint32_t max_iterations = 100, T tolerance = T(1e-6)) const
+    {
+        SquareMat A = *this;
+
+        for (std::uint32_t iter = 0; iter < max_iterations; ++iter)
+        {
+            auto [Q, R] = A.qr();
+            SquareMat A_new = R * Q;
+
+            // Check convergence (off-diagonal elements near zero)
+            T off_diag_sum = T(0);
+            for (std::uint32_t i = 0; i < N; ++i)
+            {
+                for (std::uint32_t j = 0; j < N; ++j)
+                {
+                    if (i != j)
+                    {
+                        off_diag_sum += std::abs(A_new(i, j));
+                    }
+                }
+            }
+
+            if (off_diag_sum < tolerance)
+            {
+                // Extract diagonal (eigenvalues)
+                Vec<T, N> eigenvalues;
+                for (std::uint32_t i = 0; i < N; ++i)
+                {
+                    eigenvalues.data[i] = A_new(i, i);
+                }
+                return eigenvalues;
+            }
+
+            A = A_new;
+        }
+
+        // Extract diagonal even if not fully converged
+        Vec<T, N> eigenvalues;
+        for (std::uint32_t i = 0; i < N; ++i)
+        {
+            eigenvalues.data[i] = A(i, i);
+        }
+        return eigenvalues;
     }
 
     /// \brief Create a scale matrix.

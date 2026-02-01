@@ -2,7 +2,69 @@
 
 ## Overview
 
-MatrixLib has been hardened against undefined behavior (UB) and memory safety issues to ensure clean execution under AddressSanitizer (ASan), UndefinedBehaviorSanitizer (UBSan), and MemorySanitizer (MSan).
+MatrixLib has been hardened against undefined behavior (UB) and memory safety issues to ensure clean execution under AddressSanitizer (ASan), UndefinedBehaviorSanitizer (UBSan), and MemorySanitizer (MSan). The library now includes comprehensive safety features including bounds checking, division-by-zero prevention, and epsilon-based floating-point comparisons.
+
+## Safety Features
+
+### Bounds Checking with at() Methods
+
+**Feature**: Debug-only bounds checking using `MATRIXLIB_DEBUG`
+
+All container classes (`Vec`, `Mat`, `Quaternion`) now provide `at()` accessor methods that perform bounds checking when `MATRIXLIB_DEBUG` is defined:
+
+```cpp
+// Enable debug mode
+#define MATRIXLIB_DEBUG
+
+Vec<float, 3> v(1.0f, 2.0f, 3.0f);
+float val = v.at(5);  // Triggers assertion: "Vec::at: index out of range"
+```
+
+**Benefits**:
+- Zero overhead in release builds (no `MATRIXLIB_DEBUG` defined)
+- Clear assertion messages for debugging
+- No exception handling required (embedded-friendly)
+- Works with standard `assert()` mechanism
+
+**Zephyr Integration**: Enable via `CONFIG_MATRIXLIB_DEBUG=y` in Kconfig.
+
+### Division by Zero Prevention
+
+**Feature**: Safe scalar division and inverse operations
+
+All division operations now check for zero divisors:
+
+```cpp
+Vec<float, 3> v(1.0f, 2.0f, 3.0f);
+Vec<float, 3> result = v / 0.0f;  // Returns zero vector instead of NaN/Inf
+
+Mat<float, 2, 2> m = /* singular matrix */;
+Mat<float, 2, 2> inv = m.inverse();  // Returns identity matrix for singular matrices
+```
+
+**Benefits**:
+- Prevents undefined behavior and NaN propagation
+- Minimal overhead (single comparison per operation)
+- Returns safe default values (zero or identity)
+- Applies to `operator/`, `operator/=`, `inverse()`, and `angle()`
+
+### Epsilon-Based Float Comparisons
+
+**Feature**: Machine-epsilon aware equality for floating-point types
+
+Equality operators now use epsilon-based comparison for floating-point types:
+
+```cpp
+Vec<float, 3> a(1.0f, 2.0f, 3.0f);
+Vec<float, 3> b = a * 2.0f / 2.0f;  // May have rounding errors
+bool equal = (a == b);  // Uses epsilon comparison, likely true
+```
+
+**Benefits**:
+- Handles floating-point rounding errors correctly
+- Uses `std::numeric_limits<T>::epsilon()` for type-appropriate precision
+- SIMD-optimized paths for float vectors
+- Exact comparison for integer types
 
 ## Addressed Issues
 

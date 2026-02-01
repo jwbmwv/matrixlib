@@ -28,6 +28,9 @@ add_executable(matrixlib_gtests
     test_quat.cpp
     test_edge_cases.cpp
     test_constexpr.cpp
+    test_simd_equivalence.cpp
+    test_property_based.cpp
+    test_numerical_accuracy.cpp
 )
 
 # Link libraries

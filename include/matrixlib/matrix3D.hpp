@@ -65,6 +65,8 @@ public:
     {
         Mat<T, 3, 3> temp = *this;
         std::uint32_t rank = 0;
+        // Use epsilon for floating point, zero for integers
+        const T epsilon = std::is_floating_point<T>::value ? std::numeric_limits<T>::epsilon() * T(100) : T(0);
         for (std::uint32_t i = 0; i < 3; ++i)
         {
             std::uint32_t max_row = i;
@@ -75,7 +77,7 @@ public:
                     max_row = k;
                 }
             }
-            if (temp.data[(max_row * 3) + i] == T(0))
+            if (std::abs(temp.data[(max_row * 3) + i]) <= epsilon)
             {
                 continue;
             }
@@ -112,11 +114,16 @@ public:
 
     /// \brief Inverse of the matrix.
     /// \return The inverse matrix.
-    /// \note Returns an undefined matrix if determinant is zero (singular matrix).
-    ///       Check determinant() before calling for safety.
+    /// \note Returns identity matrix if determinant is near zero (singular matrix).
     SquareMat inverse() const
     {
         const T det = determinant();
+        // Check for near-zero determinant to avoid division by zero
+        const T epsilon = std::is_floating_point<T>::value ? std::numeric_limits<T>::epsilon() * T(100) : T(0);
+        if (std::abs(det) <= epsilon)
+        {
+            return SquareMat::identity();  // Return identity for singular matrix
+        }
         SquareMat result;
 
         result.data[0] = (this->data[4] * this->data[8] - this->data[5] * this->data[7]) / det;

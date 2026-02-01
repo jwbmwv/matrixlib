@@ -124,6 +124,30 @@ public:
     /// \return Const reference to the component.
     const T& operator[](std::uint32_t index) const noexcept { return data[index]; }
 
+    /// \brief Bounds-checked element access.
+    /// \param index The index (0=x, 1=y, 2=z, 3=w).
+    /// \return Reference to the component.
+    /// \note In debug builds (MATRIXLIB_DEBUG defined), triggers assertion if index >= 4.
+    T& at(std::uint32_t index)
+    {
+#ifdef MATRIXLIB_DEBUG
+        assert(index < 4 && "Quaternion::at: index out of range");
+#endif
+        return data[index];
+    }
+
+    /// \brief Bounds-checked element access (const).
+    /// \param index The index (0=x, 1=y, 2=z, 3=w).
+    /// \return Const reference to the component.
+    /// \note In debug builds (MATRIXLIB_DEBUG defined), triggers assertion if index >= 4.
+    const T& at(std::uint32_t index) const
+    {
+#ifdef MATRIXLIB_DEBUG
+        assert(index < 4 && "Quaternion::at: index out of range");
+#endif
+        return data[index];
+    }
+
     /// \brief Addition operator.
     /// \param other The quaternion to add.
     /// \return The sum.
@@ -246,6 +270,11 @@ public:
     /// \return The result.
     MATRIX_CONSTEXPR MATRIX_NODISCARD Quaternion operator/(T scalar) const noexcept
     {
+        // Check for zero to avoid undefined behavior (minimal overhead)
+        if (scalar == T(0))
+        {
+            return Quaternion(T(0), T(0), T(0), T(0));
+        }
         const T inv = T(1) / scalar;
         return *this * inv;
     }
@@ -317,9 +346,32 @@ public:
 
     /// \brief Equality operator.
     /// \param other The quaternion to compare.
-    /// \return True if equal.
+    /// \return True if equal (uses epsilon comparison for floating point types).
     MATRIX_CONSTEXPR bool operator==(const Quaternion& other) const noexcept
     {
+#ifdef CONFIG_MATRIXLIB_NEON
+        MATRIX_IF_CONSTEXPR(std::is_same<T, float>::value)
+        {
+            MATRIX_LIKELY
+            float32x4_t a = vld1q_f32(reinterpret_cast<const float*>(data));
+            float32x4_t b = vld1q_f32(reinterpret_cast<const float*>(other.data));
+            float32x4_t diff = vabdq_f32(a, b);
+            float32x4_t eps = vdupq_n_f32(std::numeric_limits<float>::epsilon());
+            uint32x4_t cmp = vcleq_f32(diff, eps);
+            uint64x2_t cmp64 = vreinterpretq_u64_u32(cmp);
+            return vgetq_lane_u64(cmp64, 0) == ~0ULL && vgetq_lane_u64(cmp64, 1) == ~0ULL;
+        }
+#endif
+        // For floating point types, use epsilon comparison
+        MATRIX_IF_CONSTEXPR(std::is_floating_point<T>::value)
+        {
+            MATRIX_LIKELY
+            return std::abs((*this)[X] - other[X]) <= std::numeric_limits<T>::epsilon() &&
+                   std::abs((*this)[Y] - other[Y]) <= std::numeric_limits<T>::epsilon() &&
+                   std::abs((*this)[Z] - other[Z]) <= std::numeric_limits<T>::epsilon() &&
+                   std::abs((*this)[W] - other[W]) <= std::numeric_limits<T>::epsilon();
+        }
+        // For integral types, use exact comparison
         return (*this)[X] == other[X] && (*this)[Y] == other[Y] && (*this)[Z] == other[Z] && (*this)[W] == other[W];
     }
 
@@ -401,7 +453,33 @@ public:
     /// \return The inverse.
     MATRIX_NODISCARD Quaternion inverse() const noexcept
     {
-        const T n2 = norm() * norm();
+        // Compute norm squared directly to avoid redundant sqrt
+#ifdef CONFIG_MATRIXLIB_NEON
+        if (std::is_same<T, float>::value)
+        {
+            float32x4_t a = vld1q_f32(reinterpret_cast<const float*>(data));
+            float32x4_t mul = vmulq_f32(a, a);
+            float32x2_t sum = vadd_f32(vget_low_f32(mul), vget_high_f32(mul));
+            sum = vpadd_f32(sum, sum);
+            const T n2 = static_cast<T>(vget_lane_f32(sum, 0));
+            return conjugate() / n2;
+        }
+#endif
+#ifdef CONFIG_MATRIXLIB_CMSIS
+        if (std::is_same<T, float>::value)
+        {
+            float result;
+            arm_dot_prod_f32(reinterpret_cast<const float*>(data), reinterpret_cast<const float*>(data), 4, &result);
+            return conjugate() / static_cast<T>(result);
+        }
+#endif
+        const Vec<T, 3> imag = vec();
+        const T n2 = imag.dot(imag) + (*this)[W] * (*this)[W];
+        // Check for zero quaternion (minimal overhead)
+        if (n2 == T(0))
+        {
+            return Quaternion(T(1), T(0), T(0), T(0));  // Return identity quaternion
+        }
         return conjugate() / n2;
     }
 

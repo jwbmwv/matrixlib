@@ -8,12 +8,16 @@ This directory contains MatrixLib's comprehensive documentation.
 - **[README.md](../README.md)** - Project overview and quick start
 - **[QUICK_REFERENCE.md](../QUICK_REFERENCE.md)** - Compact API cheat sheet  
 - **[QUICKSTART.md](../QUICKSTART.md)** - Getting started guide
+- **[COOKBOOK.md](COOKBOOK.md)** - **NEW!** Practical patterns and recipes for common tasks
+- **[TROUBLESHOOTING.md](TROUBLESHOOTING.md)** - **NEW!** Common issues and solutions
 - **[MIGRATION.md](../MIGRATION.md)** - Migrating from Eigen, GLM, or custom code
-- **[PERFORMANCE.md](../PERFORMANCE.md)** - Benchmark results and comparisons
+- **[PERFORMANCE.md](../PERFORMANCE.md)** - Benchmark results and comparisons (updated Jan 2026)
+- **[SAFETY_IMPROVEMENTS.md](../SAFETY_IMPROVEMENTS.md)** - Recent safety enhancements
 
 ### Technical Documentation
 - **[API_Documentation.md](API_Documentation.md)** - Complete API reference
 - **[Cpp_Standard_Optimizations.md](Cpp_Standard_Optimizations.md)** - C++ feature detection
+- **[SIMD_Optimizations.md](SIMD_Optimizations.md)** - SIMD performance guide
 - **[Sanitizer_Safety.md](Sanitizer_Safety.md)** - Memory safety and UB prevention
 - **[IAR_Integration.md](IAR_Integration.md)** - IAR Embedded Workbench usage
 
@@ -37,6 +41,78 @@ Generate SVG diagrams:
 cd design
 java -jar plantuml.jar -tsvg *.puml
 ```
+
+## New Features (January 2026)
+
+### COOKBOOK.md - Practical Patterns
+Contains ready-to-use code examples for:
+- **IMU Sensor Fusion** - Complementary filter, Madgwick filter
+- **Camera Calibration** - Pinhole model, stereo vision
+- **Robot Kinematics** - Forward/inverse kinematics, DH parameters
+- **Particle Filter** - State estimation for robotics
+- **3D Graphics** - Transformation pipeline, lighting
+- **Kalman Filter** - Standard implementation
+- **Orientation Tracking** - Gyro integration, drift compensation
+- **Collision Detection** - AABB, sphere, ray intersections
+- **Path Planning** - Splines, Bezier curves
+
+### TROUBLESHOOTING.md - Solutions Guide
+Comprehensive troubleshooting for:
+- **Compilation Issues** - C++ standard, constexpr, warnings
+- **Linker Errors** - Multiple definitions, undefined references
+- **Runtime Problems** - Segfaults, NaN propagation, incorrect rotations
+- **Performance Issues** - Optimization flags, SIMD detection, profiling
+- **Platform-Specific** - NEON detection, SIMD equivalence
+- **Build System Integration** - CMake, Zephyr, PlatformIO
+- **Debugging Techniques** - Assertions, sanitizers, GDB
+
+### New API Features
+
+#### Geometric Utilities (`geometry.hpp`)
+```cpp
+#include <matrixlib/geometry.hpp>
+
+using namespace matrixlib::geometry;
+
+// Ray-sphere intersection
+Rayf ray(Vec3f(0, 0, 0), Vec3f(1, 0, 0));
+Spheref sphere(Vec3f(5, 0, 0), 2.0f);
+auto t = intersect(ray, sphere);  // Returns std::optional<float>
+
+// AABB collision detection
+AABBf box1(Vec3f(-1, -1, -1), Vec3f(1, 1, 1));
+AABBf box2(Vec3f(0.5f, 0.5f, 0.5f), Vec3f(2, 2, 2));
+bool collides = box1.intersects(box2);
+
+// Frustum culling
+Frustumf frustum = Frustumf::from_matrix(view_proj);
+bool visible = frustum.intersects(sphere);
+```
+
+#### QR Decomposition (Least-Squares)
+```cpp
+Mat4f A = /* ... */;
+auto [Q, R] = A.qr();  // Q is orthogonal, R is upper triangular
+
+// Solve Ax = b using QR
+Vec4f b(1, 2, 3, 4);
+Vec4f x = A.solve_qr(b);
+```
+
+### Testing Improvements
+
+#### SIMD Equivalence Tests
+- New test file: `tests/google/test_simd_equivalence.cpp`
+- Verifies SIMD-optimized paths produce identical results to scalar
+- Covers Vec, Mat, and Quaternion operations
+- Includes edge case testing (zero vectors, large values, etc.)
+
+#### CI Enhancements
+- **Code Coverage**: Codecov integration with lcov reports
+- **Static Analysis**: clang-tidy and cppcheck in CI pipeline
+- **Benchmark Regression**: Automatic detection of performance regressions
+- **Multiple Platforms**: Ubuntu, Windows, macOS with GCC, Clang, MSVC
+- **Sanitizers**: AddressSanitizer and UndefinedBehaviorSanitizer
 
 ## Building Documentation
 

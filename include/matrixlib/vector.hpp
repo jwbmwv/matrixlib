@@ -55,8 +55,14 @@ public:
     // and efficient SIMD operations. Row-major storage: data[i] = element i
     alignas(16) T data[N];  // Aligned for SIMD performance
 
-    /// \brief Default constructor.
-    Vec() {}
+    /// \brief Default constructor (zero-initialized for safety).
+    MATRIX_CONSTEXPR Vec()
+    {
+        for (std::uint32_t i = 0; i < N; ++i)
+        {
+            data[i] = T(0);
+        }
+    }
 
     /// \brief Constructor from array.
     /// \param arr The array to copy from.
@@ -101,6 +107,30 @@ public:
     /// \param index The index.
     /// \return Const reference to the element.
     const T& operator[](std::uint32_t index) const { return data[index]; }
+
+    /// \brief Bounds-checked element access.
+    /// \param index The index.
+    /// \return Reference to the element.
+    /// \note In debug builds (MATRIXLIB_DEBUG defined), triggers assertion if index >= N.
+    T& at(std::uint32_t index)
+    {
+#ifdef MATRIXLIB_DEBUG
+        assert(index < N && "Vec::at: index out of range");
+#endif
+        return data[index];
+    }
+
+    /// \brief Bounds-checked element access (const).
+    /// \param index The index.
+    /// \return Const reference to the element.
+    /// \note In debug builds (MATRIXLIB_DEBUG defined), triggers assertion if index >= N.
+    const T& at(std::uint32_t index) const
+    {
+#ifdef MATRIXLIB_DEBUG
+        assert(index < N && "Vec::at: index out of range");
+#endif
+        return data[index];
+    }
 
     /// \brief Get the number of elements in the vector.
     /// \return The size of the vector (N).
@@ -314,6 +344,16 @@ public:
         }
 #endif
         Vec result;
+        // Check for zero to avoid undefined behavior (minimal overhead - single comparison)
+        if (scalar == T(0))
+        {
+            // Return zero vector for safety
+            for (std::uint32_t i = 0; i < N; ++i)
+            {
+                result.data[i] = T(0);
+            }
+            return result;
+        }
         const T inv_scalar = T(1) / scalar;
         for (std::uint32_t i = 0; i < N; ++i)
         {
@@ -324,9 +364,60 @@ public:
 
     /// \brief Equality operator.
     /// \param other The vector to compare.
-    /// \return True if equal.
+    /// \return True if equal (uses epsilon comparison for floating point types).
     MATRIX_CONSTEXPR bool operator==(const Vec& other) const noexcept
     {
+#ifdef CONFIG_MATRIXLIB_NEON
+        // SIMD path for float equality comparison with epsilon
+        MATRIX_IF_CONSTEXPR(std::is_same<T, float>::value && N == 4)
+        {
+            MATRIX_LIKELY
+            float32x4_t a = vld1q_f32(reinterpret_cast<const float*>(data));
+            float32x4_t b = vld1q_f32(reinterpret_cast<const float*>(other.data));
+            float32x4_t diff = vabdq_f32(a, b);
+            float32x4_t eps = vdupq_n_f32(std::numeric_limits<float>::epsilon());
+            uint32x4_t cmp = vcleq_f32(diff, eps);
+            // All lanes must be true
+            uint64x2_t cmp64 = vreinterpretq_u64_u32(cmp);
+            return vgetq_lane_u64(cmp64, 0) == ~0ULL && vgetq_lane_u64(cmp64, 1) == ~0ULL;
+        }
+        MATRIX_IF_CONSTEXPR(std::is_same<T, float>::value && N == 3)
+        {
+            MATRIX_LIKELY
+            // Use approximate comparison for floats
+            for (std::uint32_t i = 0; i < 3; ++i)
+            {
+                if (std::abs(data[i] - other.data[i]) > std::numeric_limits<float>::epsilon())
+                    return false;
+            }
+            return true;
+        }
+        MATRIX_IF_CONSTEXPR(std::is_same<T, float>::value && N == 2)
+        {
+            MATRIX_LIKELY
+            float32x2_t a = vld1_f32(reinterpret_cast<const float*>(data));
+            float32x2_t b = vld1_f32(reinterpret_cast<const float*>(other.data));
+            float32x2_t diff = vabd_f32(a, b);
+            float32x2_t eps = vdup_n_f32(std::numeric_limits<float>::epsilon());
+            uint32x2_t cmp = vcle_f32(diff, eps);
+            // Both lanes must be true
+            return vget_lane_u32(cmp, 0) == ~0U && vget_lane_u32(cmp, 1) == ~0U;
+        }
+#endif
+        // For floating point types, use epsilon comparison
+        MATRIX_IF_CONSTEXPR(std::is_floating_point<T>::value)
+        {
+            MATRIX_LIKELY
+            for (std::uint32_t i = 0; i < N; ++i)
+            {
+                if (std::abs(data[i] - other.data[i]) > std::numeric_limits<T>::epsilon())
+                {
+                    return false;
+                }
+            }
+            return true;
+        }
+        // For integral types, use exact comparison
         for (std::uint32_t i = 0; i < N; ++i)
         {
             if (data[i] != other.data[i])
@@ -340,7 +431,7 @@ public:
     /// \brief Inequality operator.
     /// \param other The vector to compare.
     /// \return True if not equal.
-    bool operator!=(const Vec& other) const { return !(*this == other); }
+    bool operator!=(const Vec& other) const noexcept { return !(*this == other); }
 
     /// \brief Addition assignment operator.
     /// \param other The vector to add.
@@ -383,6 +474,16 @@ public:
     /// \return Reference to this.
     MATRIX_CONSTEXPR Vec& operator/=(T scalar) noexcept
     {
+        // Check for zero to avoid undefined behavior (minimal overhead)
+        if (scalar == T(0))
+        {
+            // Set to zero for safety
+            for (std::uint32_t i = 0; i < N; ++i)
+            {
+                data[i] = T(0);
+            }
+            return *this;
+        }
         const T inv_scalar = T(1) / scalar;
         for (std::uint32_t i = 0; i < N; ++i)
         {
@@ -546,7 +647,12 @@ public:
     /// \return The angle in radians.
     T angle(const Vec& other) const noexcept
     {
-        T cos_theta = dot(other) / (length() * other.length());
+        const T len1 = length();
+        const T len2 = other.length();
+        const T denom = len1 * len2;
+        if (denom == T(0))
+            return T(0);
+        T cos_theta = dot(other) / denom;
         // Clamp to [-1, 1] to avoid domain errors
         if (cos_theta > T(1))
             cos_theta = T(1);

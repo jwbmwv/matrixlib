@@ -1,30 +1,32 @@
 @startuml
 
-title Type Safety and UB Prevention Architecture
+title MatrixLib Safety Architecture
 
 skinparam backgroundColor #FEFEFE
+skinparam classBackgroundColor #E8F4F8
+skinparam classBorderColor #0078D7
 
 
 ' ---------------------------------------------------------
 ' Safe Type Conversion
 ' ---------------------------------------------------------
 class SafeTypeConversion {
-    + bit_cast : safe conversion
+    + bit_cast<T,U>() : safe conversion
     + fallback_memcpy : template fallback
     --
-    benefits:
-    no strict aliasing violations
-    no undefined behavior
-    zero cost optimization
-    sanitizer clean
+    **Benefits:**
+    ✓ No strict aliasing violations
+    ✓ No undefined behavior
+    ✓ Zero cost optimization
+    ✓ Sanitizer clean
 }
 
 note right of SafeTypeConversion
     Replaces unsafe reinterpret_cast.
-    Use cases:
-    type punning
-    bit manipulation
-    SIMD data loading
+    **Use cases:**
+    • Type punning
+    • Bit manipulation
+    • SIMD data loading
 end note
 
 
@@ -32,14 +34,14 @@ end note
 ' Quaternion Safety
 ' ---------------------------------------------------------
 class QuaternionSafety {
-    + vec_accessor : safe return by value
-    + set_vec : direct assignment
+    + vec_accessor() : safe return by value
+    + set_vec() : direct assignment
     + rvo : return value optimization
     --
-    benefits:
-    eliminates type punning UB
-    passes UBSan clean
-    same performance as unsafe code
+    **Benefits:**
+    ✓ Eliminates type punning UB
+    ✓ Passes UBSan clean
+    ✓ Same performance as unsafe code
 }
 
 note right of QuaternionSafety
@@ -88,6 +90,55 @@ note right of ComparisonSafety
     Quaternion approx_equal
     Vec safe_normalized
     Vec from_homogeneous
+end note
+
+
+' ---------------------------------------------------------
+' Bounds Checking Safety
+' ---------------------------------------------------------
+class BoundsCheckingSafety {
+    + at_methods : assert based checking
+    + MATRIXLIB_DEBUG : conditional compilation
+    + zero_overhead_release : no cost in production
+    --
+    benefits:
+    catches out of bounds access
+    debug only overhead
+    clear assertion messages
+    embedded friendly (no exceptions)
+}
+
+note right of BoundsCheckingSafety
+    Applies to:
+    Vec::at(index)
+    Mat::at(row)
+    Mat::RowProxy::at(col)
+    Quaternion::at(index)
+    All use MATRIXLIB_DEBUG flag
+end note
+
+
+' ---------------------------------------------------------
+' Division by Zero Safety
+' ---------------------------------------------------------
+class DivisionByZeroSafety {
+    + scalar_division : zero check
+    + inverse_operations : epsilon validation
+    + angle_computation : denominator check
+    --
+    benefits:
+    prevents undefined behavior
+    returns safe defaults
+    minimal overhead (single comparison)
+}
+
+note right of DivisionByZeroSafety
+    Applies to:
+    operator/(scalar)
+    operator/=(scalar)
+    inverse() methods
+    angle() computation
+    All check for zero before division
 end note
 
 
