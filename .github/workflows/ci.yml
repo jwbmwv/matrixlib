@@ -202,15 +202,10 @@ jobs:
           --enable=warning,performance,portability \
           --std=c++11 \
           --suppress=missingIncludeSystem \
-          --error-exitcode=0 \
+          --error-exitcode=1 \
           --inline-suppr \
           -I include \
-          include/matrixlib/ 2>&1 | tee cppcheck-report.txt
-        # Fail only on errors (not warnings)
-        if grep -q "error:" cppcheck-report.txt; then
-          echo "::error::cppcheck found errors"
-          exit 1
-        fi
+          include/matrixlib/*.hpp 2>&1 | tee cppcheck-report.txt
 
   constexpr-tests:
     name: Constexpr Validation (C++14+)
