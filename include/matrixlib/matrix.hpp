@@ -146,7 +146,7 @@ public:
     /// \brief Addition operator.
     /// \param other The matrix to add.
     /// \return The result matrix.
-    MATRIX_CONSTEXPR MATRIX_NODISCARD Mat operator+(const Mat& other) const noexcept
+    MATRIX_NODISCARD MATRIX_CONSTEXPR Mat operator+(const Mat& other) const noexcept
     {
         Mat result;
         for (std::uint32_t i = 0; i < R * C; ++i)
@@ -159,7 +159,7 @@ public:
     /// \brief Subtraction operator.
     /// \param other The matrix to subtract.
     /// \return The result matrix.
-    MATRIX_CONSTEXPR MATRIX_NODISCARD Mat operator-(const Mat& other) const noexcept
+    MATRIX_NODISCARD MATRIX_CONSTEXPR Mat operator-(const Mat& other) const noexcept
     {
         Mat result;
         for (std::uint32_t i = 0; i < R * C; ++i)
@@ -172,7 +172,7 @@ public:
     /// \brief Scalar multiplication operator.
     /// \param scalar The scalar to multiply by.
     /// \return The result matrix.
-    MATRIX_CONSTEXPR MATRIX_NODISCARD Mat operator*(T scalar) const noexcept
+    MATRIX_NODISCARD MATRIX_CONSTEXPR Mat operator*(T scalar) const noexcept
     {
         Mat result;
         for (std::uint32_t i = 0; i < R * C; ++i)
@@ -185,7 +185,7 @@ public:
     /// \brief Scalar division operator.
     /// \param scalar The scalar to divide by.
     /// \return The result matrix.
-    MATRIX_CONSTEXPR MATRIX_NODISCARD Mat operator/(T scalar) const noexcept
+    MATRIX_NODISCARD MATRIX_CONSTEXPR Mat operator/(T scalar) const noexcept
     {
         Mat result;
         // Check for zero to avoid undefined behavior (minimal overhead)
@@ -210,7 +210,7 @@ public:
     /// \param other The matrix to multiply.
     /// \return The result matrix.
     template<std::uint32_t S>
-    MATRIX_CONSTEXPR MATRIX_NODISCARD Mat<T, R, S> operator*(const Mat<T, C, S>& other) const noexcept
+    MATRIX_NODISCARD MATRIX_CONSTEXPR Mat<T, R, S> operator*(const Mat<T, C, S>& other) const noexcept
     {
 #ifdef CONFIG_MATRIXLIB_NEON
         // Optimized 4x4 matrix multiplication
@@ -303,7 +303,7 @@ public:
     /// \brief Matrix-vector multiplication operator.
     /// \param v The vector to multiply.
     /// \return The result vector.
-    MATRIX_CONSTEXPR MATRIX_NODISCARD Vec<T, R> operator*(const Vec<T, C>& v) const noexcept
+    MATRIX_NODISCARD MATRIX_CONSTEXPR Vec<T, R> operator*(const Vec<T, C>& v) const noexcept
     {
 #ifdef CONFIG_MATRIXLIB_NEON
         // Optimized 4x4 matrix-vector multiplication
@@ -490,7 +490,7 @@ public:
 
     /// \brief Unary negation operator.
     /// \return The negated matrix.
-    MATRIX_CONSTEXPR MATRIX_NODISCARD Mat operator-() const noexcept
+    MATRIX_NODISCARD MATRIX_CONSTEXPR Mat operator-() const noexcept
     {
         Mat result;
         for (std::uint32_t i = 0; i < R * C; ++i)
@@ -630,10 +630,6 @@ public:
     /// \return Const pointer to the underlying data array.
     const T* ptr() const noexcept { return data; }
 
-    /// \brief Get total number of elements.
-    /// \return The total number of elements (R * C).
-    MATRIX_CONSTEXPR std::uint32_t size() const noexcept { return R * C; }
-
     /// \brief Swap two matrices.
     /// \param other The matrix to swap with.
     void swap(Mat& other) noexcept
@@ -750,7 +746,7 @@ public:
 /// \param m The matrix.
 /// \return The result matrix.
 template<typename T, std::uint32_t R, std::uint32_t C>
-MATRIX_CONSTEXPR MATRIX_NODISCARD Mat<T, R, C> operator*(T scalar, const Mat<T, R, C>& m) noexcept
+MATRIX_NODISCARD MATRIX_CONSTEXPR Mat<T, R, C> operator*(T scalar, const Mat<T, R, C>& m) noexcept
 {
     return m * scalar;
 }
@@ -764,7 +760,7 @@ MATRIX_CONSTEXPR MATRIX_NODISCARD Mat<T, R, C> operator*(T scalar, const Mat<T, 
 /// \param B The second matrix.
 /// \return The result matrix.
 template<typename T, std::uint32_t R, std::uint32_t C, std::uint32_t S>
-MATRIX_CONSTEXPR MATRIX_NODISCARD Mat<T, R, S> mul(const Mat<T, R, C>& A, const Mat<T, C, S>& B) noexcept
+MATRIX_NODISCARD MATRIX_CONSTEXPR Mat<T, R, S> mul(const Mat<T, R, C>& A, const Mat<T, C, S>& B) noexcept
 {
     return A * B;
 }
@@ -777,7 +773,7 @@ MATRIX_CONSTEXPR MATRIX_NODISCARD Mat<T, R, S> mul(const Mat<T, R, C>& A, const 
 /// \param x The vector.
 /// \return The result vector.
 template<typename T, std::uint32_t R, std::uint32_t C>
-MATRIX_CONSTEXPR MATRIX_NODISCARD Vec<T, R> mul(const Mat<T, R, C>& A, const Vec<T, C>& x) noexcept
+MATRIX_NODISCARD MATRIX_CONSTEXPR Vec<T, R> mul(const Mat<T, R, C>& A, const Vec<T, C>& x) noexcept
 {
     return A * x;
 }
@@ -1396,14 +1392,6 @@ public:
         return result;
     }
 };
-
-// Static asserts for trivial copyability (C++11, replaces deprecated is_pod)
-static_assert(std::is_trivially_copyable<Mat<float, 2, 2>>::value, "Mat<float, 2, 2> must be trivially copyable");
-static_assert(std::is_trivially_copyable<Mat<float, 3, 3>>::value, "Mat<float, 3, 3> must be trivially copyable");
-static_assert(std::is_trivially_copyable<Mat<float, 4, 4>>::value, "Mat<float, 4, 4> must be trivially copyable");
-static_assert(std::is_trivially_copyable<SquareMat<float, 2>>::value, "SquareMat<float, 2> must be trivially copyable");
-static_assert(std::is_trivially_copyable<SquareMat<float, 3>>::value, "SquareMat<float, 3> must be trivially copyable");
-static_assert(std::is_trivially_copyable<SquareMat<float, 4>>::value, "SquareMat<float, 4> must be trivially copyable");
 
 }  // namespace matrixlib
 

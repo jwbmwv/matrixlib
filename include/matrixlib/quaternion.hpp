@@ -268,7 +268,7 @@ public:
     /// \brief Scalar division operator.
     /// \param scalar The scalar.
     /// \return The result.
-    MATRIX_CONSTEXPR MATRIX_NODISCARD Quaternion operator/(T scalar) const noexcept
+    MATRIX_NODISCARD MATRIX_CONSTEXPR Quaternion operator/(T scalar) const noexcept
     {
         // Check for zero to avoid undefined behavior (minimal overhead)
         if (scalar == T(0))
@@ -852,13 +852,10 @@ public:
 /// \param q The quaternion.
 /// \return The result.
 template<typename T>
-MATRIX_CONSTEXPR MATRIX_NODISCARD Quaternion<T> operator*(T scalar, const Quaternion<T>& q) noexcept
+MATRIX_NODISCARD MATRIX_CONSTEXPR Quaternion<T> operator*(T scalar, const Quaternion<T>& q) noexcept
 {
     return q * scalar;
 }
-
-// Static assert for trivial copyability (C++11, replaces deprecated is_pod)
-static_assert(std::is_trivially_copyable<Quaternion<float>>::value, "Quaternion<float> must be trivially copyable");
 
 }  // namespace matrixlib
 

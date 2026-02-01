@@ -22,6 +22,9 @@
 #endif
 
 // ==================== C++17 Features ====================
+// Note: MATRIX_NODISCARD must be placed BEFORE the return type in function declarations
+// Correct: MATRIX_NODISCARD MATRIX_CONSTEXPR ReturnType func()
+// Incorrect: MATRIX_CONSTEXPR MATRIX_NODISCARD ReturnType func()
 #if __cplusplus >= 201703L
 #define MATRIX_NODISCARD [[nodiscard]]
 #define MATRIX_CONSTEXPR17 constexpr

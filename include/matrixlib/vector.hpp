@@ -86,10 +86,10 @@ public:
 
     /// \brief Variadic constructor for direct initialization.
     /// \tparam Args The types of the arguments.
-    /// \param args The values to initialize with.
+    /// \param first The first value to initialize with.
+    /// \param args The remaining values to initialize with.
     template<typename... Args>
-    MATRIX_CONSTEXPR Vec(typename std::enable_if<sizeof...(Args) == N && sizeof...(Args) >= 2, T>::type first,
-                         Args... args)
+    MATRIX_CONSTEXPR Vec(typename std::enable_if<(sizeof...(Args) + 1 == N) && (N >= 2), T>::type first, Args... args)
     {
         T temp[] = {first, static_cast<T>(args)...};
         for (std::uint32_t i = 0; i < N; ++i)
@@ -139,7 +139,7 @@ public:
     /// \brief Addition operator.
     /// \param other The vector to add.
     /// \return The result vector.
-    MATRIX_CONSTEXPR MATRIX_NODISCARD Vec operator+(const Vec& other) const noexcept
+    MATRIX_NODISCARD MATRIX_CONSTEXPR Vec operator+(const Vec& other) const noexcept
     {
 #ifdef CONFIG_MATRIXLIB_NEON
         if (std::is_same<T, float>::value && N == 2)
@@ -197,7 +197,7 @@ public:
     /// \brief Subtraction operator.
     /// \param other The vector to subtract.
     /// \return The result vector.
-    MATRIX_CONSTEXPR MATRIX_NODISCARD Vec operator-(const Vec& other) const noexcept
+    MATRIX_NODISCARD MATRIX_CONSTEXPR Vec operator-(const Vec& other) const noexcept
     {
 #ifdef CONFIG_MATRIXLIB_NEON
         if (std::is_same<T, float>::value && N == 2)
@@ -238,7 +238,7 @@ public:
 
     /// \brief Unary minus operator.
     /// \return The negated vector.
-    MATRIX_CONSTEXPR MATRIX_NODISCARD Vec operator-() const noexcept
+    MATRIX_NODISCARD MATRIX_CONSTEXPR Vec operator-() const noexcept
     {
         Vec result;
         for (std::uint32_t i = 0; i < N; ++i)
@@ -251,7 +251,7 @@ public:
     /// \brief Scalar multiplication operator.
     /// \param scalar The scalar to multiply by.
     /// \return The result vector.
-    MATRIX_CONSTEXPR MATRIX_NODISCARD Vec operator*(T scalar) const noexcept
+    MATRIX_NODISCARD MATRIX_CONSTEXPR Vec operator*(T scalar) const noexcept
     {
 #ifdef CONFIG_MATRIXLIB_NEON
         if (std::is_same<T, float>::value && N == 2)
@@ -293,7 +293,7 @@ public:
     /// \brief Scalar division operator.
     /// \param scalar The scalar to divide by.
     /// \return The result vector.
-    MATRIX_CONSTEXPR MATRIX_NODISCARD Vec operator/(T scalar) const noexcept
+    MATRIX_NODISCARD MATRIX_CONSTEXPR Vec operator/(T scalar) const noexcept
     {
 #ifdef CONFIG_MATRIXLIB_NEON
         // Fast reciprocal for NEON float vectors
@@ -557,7 +557,7 @@ public:
     /// \param other The other vector.
     /// \return The cross product.
     template<std::uint32_t NN = N>
-    MATRIX_CONSTEXPR MATRIX_NODISCARD typename std::enable_if<NN == 3, Vec>::type cross(const Vec& other) const noexcept
+    MATRIX_NODISCARD MATRIX_CONSTEXPR typename std::enable_if<NN == 3, Vec>::type cross(const Vec& other) const noexcept
     {
 #ifdef CONFIG_MATRIXLIB_NEON
         MATRIX_IF_CONSTEXPR(std::is_same<T, float>::value)
@@ -604,7 +604,7 @@ public:
     /// \param other The other vector.
     /// \return The cross product.
     template<std::uint32_t NN = N>
-    MATRIX_CONSTEXPR MATRIX_NODISCARD typename std::enable_if<NN == 3, Vec>::type
+    MATRIX_NODISCARD MATRIX_CONSTEXPR typename std::enable_if<NN == 3, Vec>::type
     operator^(const Vec& other) const noexcept
     {
         return cross(other);
@@ -1114,7 +1114,7 @@ public:
 /// \param v The vector.
 /// \return The result vector.
 template<typename T, std::uint32_t N>
-MATRIX_CONSTEXPR MATRIX_NODISCARD Vec<T, N> operator*(T scalar, const Vec<T, N>& v) noexcept
+MATRIX_NODISCARD MATRIX_CONSTEXPR Vec<T, N> operator*(T scalar, const Vec<T, N>& v) noexcept
 {
     return v * scalar;
 }

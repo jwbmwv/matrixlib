@@ -10,6 +10,7 @@
 #pragma once
 
 #include <cstdint>
+#include <limits>
 #include <type_traits>
 
 #include "compiler_features.hpp"
@@ -82,6 +83,24 @@ MATRIX_INLINE_VAR MATRIX_CONSTEXPR T ln2 = T(0.69314718055994530942);
 /// \details Precision: 20 decimal places
 template<typename T = double>
 MATRIX_INLINE_VAR MATRIX_CONSTEXPR T ln10 = T(2.30258509299404568402);
+
+/// \brief Default epsilon for floating-point comparisons (float)
+/// \details Scaled machine epsilon (~8x) for practical comparison tolerance.
+///          Use for approximate equality: abs(a - b) < epsilon_f
+MATRIX_INLINE_VAR MATRIX_CONSTEXPR float epsilon_f = std::numeric_limits<float>::epsilon() * 8.0f;  // ≈ 9.5e-7
+
+/// \brief Default epsilon for floating-point comparisons (double)
+/// \details Scaled machine epsilon (~4.5e6x) for practical comparison tolerance.
+///          Use for approximate equality: abs(a - b) < epsilon_d
+MATRIX_INLINE_VAR MATRIX_CONSTEXPR double epsilon_d =
+    std::numeric_limits<double>::epsilon() * 4.5e6;  // ≈ 1e-9 (relaxed from 1e-12)
+
+/// \brief Default epsilon for floating-point comparisons (generic)
+/// \tparam T Numeric type (default: double)
+/// \details Scaled machine epsilon for practical comparison tolerance.
+///          For float: ~8x machine epsilon, for double: ~100x machine epsilon
+template<typename T = double>
+MATRIX_INLINE_VAR MATRIX_CONSTEXPR T epsilon = std::numeric_limits<T>::epsilon() * T(100);
 
 // ==================== Conversion Factors ====================
 

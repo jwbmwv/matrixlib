@@ -25,9 +25,6 @@ using Vec2d = Vec<double, 2>;
 using Vec2i = Vec<int, 2>;
 using Vec2u = Vec<unsigned int, 2>;
 
-// Static assert for trivial copyability (C++11, replaces deprecated is_pod)
-static_assert(std::is_trivially_copyable<Vec<float, 2>>::value, "Vec<float, 2> must be trivially copyable");
-
 }  // namespace matrixlib
 
 #endif  // _MATRIXLIB_VEC2D_HPP_

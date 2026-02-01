@@ -45,6 +45,7 @@
 #include "matrixlib/matrix.hpp"
 #include "matrixlib/matrix2D.hpp"
 #include "matrixlib/matrix3D.hpp"
+#include "matrixlib/quaternion.hpp"
 
 namespace matrixlib
 {
@@ -152,6 +153,19 @@ MATRIX_CONSTEXPR T saturate(T value) noexcept
 
 // Note: Optimizations are integrated into Vec and SquareMat methods for float types
 #endif
+
+// Static asserts for trivial copyability (C++11, replaces deprecated is_pod)
+// These are placed here (after all specializations) to avoid "instantiation after specialization" errors
+static_assert(std::is_trivially_copyable<Vec<float, 2>>::value, "Vec<float, 2> must be trivially copyable");
+static_assert(std::is_trivially_copyable<Vec<float, 3>>::value, "Vec<float, 3> must be trivially copyable");
+static_assert(std::is_trivially_copyable<Vec<float, 4>>::value, "Vec<float, 4> must be trivially copyable");
+static_assert(std::is_trivially_copyable<Mat<float, 2, 2>>::value, "Mat<float, 2, 2> must be trivially copyable");
+static_assert(std::is_trivially_copyable<Mat<float, 3, 3>>::value, "Mat<float, 3, 3> must be trivially copyable");
+static_assert(std::is_trivially_copyable<Mat<float, 4, 4>>::value, "Mat<float, 4, 4> must be trivially copyable");
+static_assert(std::is_trivially_copyable<SquareMat<float, 2>>::value, "SquareMat<float, 2> must be trivially copyable");
+static_assert(std::is_trivially_copyable<SquareMat<float, 3>>::value, "SquareMat<float, 3> must be trivially copyable");
+static_assert(std::is_trivially_copyable<SquareMat<float, 4>>::value, "SquareMat<float, 4> must be trivially copyable");
+static_assert(std::is_trivially_copyable<Quaternion<float>>::value, "Quaternion<float> must be trivially copyable");
 
 }  // namespace matrixlib
 

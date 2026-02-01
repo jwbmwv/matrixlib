@@ -25,10 +25,6 @@ using Vec3d = Vec<double, 3>;
 using Vec3i = Vec<int, 3>;
 using Vec3u = Vec<unsigned int, 3>;
 
-// Static asserts for trivial copyability (C++11, replaces deprecated is_pod)
-static_assert(std::is_trivially_copyable<Vec<float, 3>>::value, "Vec<float, 3> must be trivially copyable");
-static_assert(std::is_trivially_copyable<Vec<float, 4>>::value, "Vec<float, 4> must be trivially copyable");
-
 }  // namespace matrixlib
 
 #endif  // _MATRIXLIB_VEC3D_HPP_
