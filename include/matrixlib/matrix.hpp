@@ -12,6 +12,7 @@
 #ifndef _MATRIXLIB_MATRIX_HPP_
 #define _MATRIXLIB_MATRIX_HPP_
 
+#include <tuple>
 #include "vector.hpp"
 
 namespace matrixlib
@@ -787,6 +788,10 @@ class SquareMat : public Mat<T, N, N>
 public:
     /// \brief Inherit constructors.
     using Mat<T, N, N>::Mat;
+
+    /// \brief Conversion constructor from Mat<T, N, N>.
+    /// \param mat The matrix to convert from.
+    MATRIX_CONSTEXPR SquareMat(const Mat<T, N, N>& mat) : Mat<T, N, N>(mat) {}
 
     /// \brief Trace of the matrix (sum of diagonal elements).
     /// \return The trace.

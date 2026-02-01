@@ -613,6 +613,10 @@ public:
     /// \return The Euclidean length.
     T length() const noexcept { return std::sqrt(dot(*this)); }
 
+    /// \brief Squared length of the vector.
+    /// \return The squared Euclidean length.
+    T length_squared() const noexcept { return dot(*this); }
+
     /// \brief Normalized vector.
     /// \return The unit vector in the same direction.
     Vec normalized() const noexcept

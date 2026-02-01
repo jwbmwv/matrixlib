@@ -115,10 +115,10 @@ TEST_F(ConstantsTest, ConversionExamples)
 TEST_F(ConstantsTest, EpsilonValues)
 {
     // Epsilon values are now based on std::numeric_limits<T>::epsilon() with scaling
-    // epsilon_f ≈ 8x machine epsilon for float ≈ 9.5e-7
-    // epsilon_d ≈ 4.5e6x machine epsilon for double ≈ 1e-9
-    EXPECT_NEAR(constants::epsilon_f, std::numeric_limits<float>::epsilon() * 8.0f, 1e-8f);
-    EXPECT_NEAR(constants::epsilon_d, std::numeric_limits<double>::epsilon() * 4.5e6, 1e-10);
+    // epsilon_f() ≈ 8x machine epsilon for float ≈ 9.5e-7
+    // epsilon_d() ≈ 4.5e6x machine epsilon for double ≈ 1e-9
+    EXPECT_NEAR(constants::epsilon_f(), std::numeric_limits<float>::epsilon() * 8.0f, 1e-8f);
+    EXPECT_NEAR(constants::epsilon_d(), std::numeric_limits<double>::epsilon() * 4.5e6, 1e-10);
 
     // Generic template: 100x machine epsilon
     EXPECT_NEAR(constants::epsilon<float>, std::numeric_limits<float>::epsilon() * 100.0f, 1e-8f);
@@ -128,8 +128,8 @@ TEST_F(ConstantsTest, EpsilonValues)
 TEST_F(ConstantsTest, EpsilonTypeSafety)
 {
     // Verify types are correct
-    EXPECT_TRUE((std::is_same<decltype(constants::epsilon_f), const float>::value));
-    EXPECT_TRUE((std::is_same<decltype(constants::epsilon_d), const double>::value));
+    EXPECT_TRUE((std::is_same<decltype(constants::epsilon_f()), float>::value));
+    EXPECT_TRUE((std::is_same<decltype(constants::epsilon_d()), double>::value));
 }
 
 // ==================== Physical Constants Tests ====================

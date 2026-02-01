@@ -85,14 +85,19 @@ MATRIX_INLINE_VAR MATRIX_CONSTEXPR T ln10 = T(2.30258509299404568402);
 
 /// \brief Default epsilon for floating-point comparisons (float)
 /// \details Scaled machine epsilon (~8x) for practical comparison tolerance.
-///          Use for approximate equality: abs(a - b) < epsilon_f
-MATRIX_INLINE_VAR MATRIX_CONSTEXPR float epsilon_f = std::numeric_limits<float>::epsilon() * 8.0f;  // ≈ 9.5e-7
+///          Use for approximate equality: abs(a - b) < epsilon_f()
+inline MATRIX_CONSTEXPR float epsilon_f() noexcept
+{
+    return std::numeric_limits<float>::epsilon() * 8.0f;  // ≈ 9.5e-7
+}
 
 /// \brief Default epsilon for floating-point comparisons (double)
 /// \details Scaled machine epsilon (~4.5e6x) for practical comparison tolerance.
-///          Use for approximate equality: abs(a - b) < epsilon_d
-MATRIX_INLINE_VAR MATRIX_CONSTEXPR double epsilon_d =
-    std::numeric_limits<double>::epsilon() * 4.5e6;  // ≈ 1e-9 (relaxed from 1e-12)
+///          Use for approximate equality: abs(a - b) < epsilon_d()
+inline MATRIX_CONSTEXPR double epsilon_d() noexcept
+{
+    return std::numeric_limits<double>::epsilon() * 4.5e6;  // ≈ 1e-9 (relaxed from 1e-12)
+}
 
 /// \brief Default epsilon for floating-point comparisons (generic)
 /// \tparam T Numeric type (default: double)

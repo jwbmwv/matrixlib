@@ -751,6 +751,12 @@ public:
     /// \return The identity quaternion (0, 0, 0, 1).
     static MATRIX_CONSTEXPR Quaternion identity() noexcept { return Quaternion(T(1), T(0), T(0), T(0)); }
 
+    /// \brief Create quaternion from axis-angle representation.
+    /// \param axis The rotation axis (should be normalized).
+    /// \param angle The rotation angle in radians.
+    /// \return Quaternion representing the rotation.
+    static Quaternion from_axis_angle(const Vec<T, 3>& axis, T angle) noexcept { return Quaternion(axis, angle); }
+
     /// \brief Convert quaternion to Euler angles (roll, pitch, yaw)
     /// \return Vec<T,3> containing (roll, pitch, yaw) in radians
     /// Roll (rotation about X), Pitch (rotation about Y), Yaw (rotation about Z)
