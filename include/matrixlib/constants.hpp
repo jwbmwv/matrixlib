@@ -5,7 +5,6 @@
 ///          This header is independent and can be used by any component.
 /// \copyright Copyright (c) 2026 James Baldwin
 /// \author James Baldwin
-/// \date 2026
 
 #pragma once
 

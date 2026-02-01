@@ -4,7 +4,6 @@
 /// @details Unit tests for mathematical constants in the constants namespace.
 /// @copyright Copyright (c) 2026 James Baldwin
 /// @author James Baldwin
-/// @date 2026
 
 #include <zephyr/ztest.h>
 #include <matrixlib/constants.hpp>

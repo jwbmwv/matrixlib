@@ -5,7 +5,6 @@
 ///          Verifies precision, type safety, and accessibility.
 /// @copyright Copyright (c) 2026 James Baldwin
 /// @author James Baldwin
-/// @date 2026
 
 #include <gtest/gtest.h>
 #include <matrixlib/constants.hpp>
@@ -115,10 +114,15 @@ TEST_F(ConstantsTest, ConversionExamples)
 
 TEST_F(ConstantsTest, EpsilonValues)
 {
-    EXPECT_EQ(constants::epsilon_f, 1e-6f);
-    EXPECT_EQ(constants::epsilon_d, 1e-12);
-    EXPECT_EQ(constants::epsilon<float>, 1e-6f);
-    EXPECT_EQ(constants::epsilon<double>, 1e-6);  // Default template uses 1e-6 for generic
+    // Epsilon values are now based on std::numeric_limits<T>::epsilon() with scaling
+    // epsilon_f ≈ 8x machine epsilon for float ≈ 9.5e-7
+    // epsilon_d ≈ 4.5e6x machine epsilon for double ≈ 1e-9
+    EXPECT_NEAR(constants::epsilon_f, std::numeric_limits<float>::epsilon() * 8.0f, 1e-8f);
+    EXPECT_NEAR(constants::epsilon_d, std::numeric_limits<double>::epsilon() * 4.5e6, 1e-10);
+
+    // Generic template: 100x machine epsilon
+    EXPECT_NEAR(constants::epsilon<float>, std::numeric_limits<float>::epsilon() * 100.0f, 1e-8f);
+    EXPECT_NEAR(constants::epsilon<double>, std::numeric_limits<double>::epsilon() * 100.0, 1e-12);
 }
 
 TEST_F(ConstantsTest, EpsilonTypeSafety)

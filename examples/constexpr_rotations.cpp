@@ -4,7 +4,6 @@
 /// @details Shows how to create rotation matrices at compile time for different C++ standards
 /// @copyright Copyright (c) 2026 James Baldwin
 /// @author James Baldwin
-/// @date 2026
 
 #include <matrixlib/matrixlib.hpp>
 #include <iostream>

@@ -5,7 +5,6 @@
 ///          dot/cross products, magnitude, normalization, projections, and rotations.
 /// @copyright Copyright (c) 2026 James Baldwin
 /// @author James Baldwin
-/// @date 2026
 
 #include <gtest/gtest.h>
 #include <matrixlib/matrixlib.hpp>

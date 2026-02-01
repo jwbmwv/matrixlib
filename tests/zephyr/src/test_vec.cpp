@@ -4,7 +4,6 @@
 /// @details Comprehensive unit tests for vector operations using Zephyr ztest framework.
 /// @copyright Copyright (c) 2026 James Baldwin
 /// @author James Baldwin
-/// @date 2026
 
 #include <zephyr/ztest.h>
 #include <matrixlib/matrixlib.hpp>

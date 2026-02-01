@@ -5,7 +5,6 @@
 ///          efficient block operations and submatrix manipulation.
 /// @copyright Copyright (c) 2026 James Baldwin
 /// @author James Baldwin
-/// @date 2026
 
 #pragma once
 

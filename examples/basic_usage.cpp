@@ -5,7 +5,6 @@
 ///          quaternion rotations, SLERP interpolation, and practical IMU sensor fusion.
 /// @copyright Copyright (c) 2026 James Baldwin
 /// @author James Baldwin
-/// @date 2026
 
 #include <matrixlib/matrixlib.hpp>
 #include <matrixlib/quaternion.hpp>

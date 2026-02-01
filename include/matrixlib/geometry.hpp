@@ -1,6 +1,9 @@
+// SPDX-License-Identifier: MIT
 /// @file geometry.hpp
 /// @brief Geometric primitives and utilities for collision detection and ray tracing
 /// @details Provides AABB, spheres, rays, planes, and intersection tests
+/// @copyright Copyright (c) 2026 James Baldwin
+/// @author James Baldwin
 
 #pragma once
 

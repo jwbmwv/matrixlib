@@ -4,7 +4,6 @@
 /// @details Test suite setup and teardown for Zephyr ztest framework.
 /// @copyright Copyright (c) 2026 James Baldwin
 /// @author James Baldwin
-/// @date 2026
 
 #include <zephyr/ztest.h>
 

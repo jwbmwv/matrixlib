@@ -5,7 +5,6 @@
 ///          If these tests compile, the constexpr functionality is working correctly.
 /// @copyright Copyright (c) 2026 James Baldwin
 /// @author James Baldwin
-/// @date 2026
 
 #include <matrixlib/matrixlib.hpp>
 #include <matrixlib/quaternion.hpp>

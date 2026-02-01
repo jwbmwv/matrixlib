@@ -5,7 +5,6 @@
 ///          multiplication, rotation, SLERP interpolation, and matrix conversion.
 /// @copyright Copyright (c) 2026 James Baldwin
 /// @author James Baldwin
-/// @date 2026
 
 #include <gtest/gtest.h>
 #include <matrixlib/quaternion.hpp>

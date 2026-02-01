@@ -5,7 +5,6 @@
 ///          quaternion aliasing safety, and other edge cases that trigger sanitizers.
 /// @copyright Copyright (c) 2026 James Baldwin
 /// @author James Baldwin
-/// @date 2026
 
 #include <gtest/gtest.h>
 #include <matrixlib/matrixlib.hpp>

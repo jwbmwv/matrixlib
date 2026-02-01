@@ -5,12 +5,11 @@
 ///          with Vec<T,3> integration for efficient operations and CMSIS-DSP support.
 /// @copyright Copyright (c) 2026 James Baldwin
 /// @author James Baldwin
-/// @date 2026
 
 #pragma once
 
-#ifndef _QUATERNION_HPP_
-#define _QUATERNION_HPP_
+#ifndef _MATRIXLIB_QUATERNION_HPP_
+#define _MATRIXLIB_QUATERNION_HPP_
 
 #include <matrixlib/matrixlib.hpp>
 
@@ -859,4 +858,4 @@ MATRIX_NODISCARD MATRIX_CONSTEXPR Quaternion<T> operator*(T scalar, const Quater
 
 }  // namespace matrixlib
 
-#endif  // _QUATERNION_HPP_
+#endif  // _MATRIXLIB_QUATERNION_HPP_
