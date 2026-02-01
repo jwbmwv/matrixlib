@@ -15,6 +15,9 @@ if(GTest_FOUND)
         google/test_quat.cpp
         google/test_edge_cases.cpp
         google/test_constexpr.cpp
+        google/test_simd_equivalence.cpp
+        google/test_property_based.cpp
+        google/test_numerical_accuracy.cpp
     )
 
     # Link libraries
